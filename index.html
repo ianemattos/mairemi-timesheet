@@ -550,6 +550,16 @@
             margin-top: 6px;
         }
 
+        /* Narrow screens: keep the top bar inside the viewport */
+        @media (max-width: 600px) {
+            .top-nav { padding: 10px 12px; }
+            .top-nav-inner { flex-wrap: wrap; gap: 8px; }
+            .brand-badge { display: none; }
+            .switch-btn { padding: 6px 10px; font-size: 0.78rem; white-space: nowrap; }
+            .switch-btn svg { display: none; }
+            .container { padding: 0 12px; }
+        }
+
         /* Login screen, locked state, read-only viewer mode, sync status */
         #login-overlay { display: none; position: fixed; inset: 0; z-index: 200; align-items: center; justify-content: center; padding: 20px; }
         body.needs-login #login-overlay { display: flex; }

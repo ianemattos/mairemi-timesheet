@@ -367,6 +367,7 @@
         .tag-night { background: var(--accent-purple-bg); color: var(--accent-purple); }
         .tag-sick { background: var(--accent-amber-bg); color: var(--accent-amber); }
         .tag-wknd { background: var(--accent-rose-bg); color: var(--accent-rose); }
+        .tag-day { background: var(--accent-green-bg); color: var(--accent-green); }
 
         .tc-right {
             text-align: right;
@@ -637,10 +638,10 @@
 
                 <!-- Collapsible Manual Shift Form -->
                 <div class="form-collapsible" id="manual-form-el">
-                    <div class="input-group"><label>Date</label><input type="date" id="input-date"></div>
+                    <div class="input-group"><label>Date</label><input type="text" id="input-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10" autocomplete="off"></div>
                     <div style="display:flex;gap:10px;">
-                        <div class="input-group" style="flex:1;"><label>Start Time</label><input type="time" id="input-start"></div>
-                        <div class="input-group" style="flex:1;"><label>End Time</label><input type="time" id="input-end"></div>
+                        <div class="input-group" style="flex:1;"><label>Start Time</label><input type="text" id="input-start" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div>
+                        <div class="input-group" style="flex:1;"><label>End Time</label><input type="text" id="input-end" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div>
                     </div>
                     <div class="input-group"><label>Notes / Activity</label><input type="text" id="input-notes" placeholder="e.g. Park visit with Maire & Remi"></div>
                     <button class="btn-submit-shift" onclick="saveManualShift()">Save Shift Entry</button>
@@ -847,6 +848,35 @@
         const fmtH = n => n.toFixed(1).replace('.', ',');
         const fmtEur = n => n.toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
         const round2 = n => Math.round(n * 100) / 100;
+
+        // dd.mm.yyyy and 24-hour display / input
+        const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        function isoToDisplay(iso) { const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; }
+        function fmtDate(iso) { const d = parseLocalDate(iso); return `${WEEKDAYS[d.getDay()]} ${isoToDisplay(iso)}`; }
+        function fmtClock(date) { return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`; }
+        function formatDigits(value, kind) {
+            const digits = value.replace(/\D/g, '');
+            if (kind === 'date') {
+                const d = digits.slice(0, 8);
+                let out = d.slice(0, 2);
+                if (d.length > 2) out += '.' + d.slice(2, 4);
+                if (d.length > 4) out += '.' + d.slice(4, 8);
+                return out;
+            }
+            const t = digits.slice(0, 4);
+            return t.length > 2 ? t.slice(0, 2) + ':' + t.slice(2) : t;
+        }
+        function parseDateInput(str) {
+            const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(str.trim());
+            if (!m) return null;
+            const iso = `${m[3]}-${m[2]}-${m[1]}`;
+            const d = parseLocalDate(iso);
+            return (!isNaN(d) && localDateStr(d) === iso) ? iso : null;
+        }
+        function parseTimeInput(str) {
+            const m = /^(\d{2}):(\d{2})$/.exec(str.trim());
+            return (m && +m[1] < 24 && +m[2] < 60) ? `${m[1]}:${m[2]}` : null;
+        }
         function esc(s) {
             return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
@@ -914,7 +944,7 @@
             const btn = document.getElementById('btn-toggle-shift');
             if (activeShiftStart) {
                 banner.style.display = 'block';
-                document.getElementById('banner-start-time').innerText = new Date(activeShiftStart).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                document.getElementById('banner-start-time').innerText = fmtClock(new Date(activeShiftStart));
                 btn.style.background = 'var(--accent-rose)';
                 document.getElementById('btn-toggle-text').innerText = 'End Shift Now';
             } else {
@@ -948,12 +978,15 @@
 
         async function startApp() {
             document.body.classList.remove('locked');
-            document.getElementById('input-date').value = localDateStr(new Date());
+            document.getElementById('input-date').value = isoToDisplay(localDateStr(new Date()));
             setAppMode(activeViewMode);
             await Promise.all([loadShifts(), loadActiveShift()]);
         }
 
         async function boot() {
+            [['input-date', 'date'], ['input-start', 'time'], ['input-end', 'time']].forEach(([id, kind]) => {
+                document.getElementById(id).addEventListener('input', e => { e.target.value = formatDigits(e.target.value, kind); });
+            });
             document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
             if (IS_VIEWER) {
@@ -1070,8 +1103,8 @@
                     const start = new Date(activeShiftStart);
                     const end = new Date();
                     const dateStr = localDateStr(start);
-                    const startStr = start.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
-                    const endStr = end.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
+                    const startStr = fmtClock(start);
+                    const endStr = fmtClock(end);
 
                     const result = await addShift(dateStr, startStr, endStr, "Live shift timer");
                     if (result !== 'error') {
@@ -1129,15 +1162,13 @@
 
         async function saveManualShift() {
             if (IS_VIEWER || busy) return;
-            const dateStr = document.getElementById('input-date').value;
-            const startStr = document.getElementById('input-start').value;
-            const endStr = document.getElementById('input-end').value;
+            const dateStr = parseDateInput(document.getElementById('input-date').value);
+            const startStr = parseTimeInput(document.getElementById('input-start').value);
+            const endStr = parseTimeInput(document.getElementById('input-end').value);
             const notes = document.getElementById('input-notes').value;
 
-            if (!dateStr || !startStr || !endStr) {
-                alert("Please fill in Date, Start, and End times.");
-                return;
-            }
+            if (!dateStr) { alert("Date must look like 10.11.2026."); return; }
+            if (!startStr || !endStr) { alert("Start and end must look like 15:30 (24-hour)."); return; }
 
             busy = true;
             try {
@@ -1220,12 +1251,13 @@
 
         // --- RENDER & DOM UPDATES ---
         function tagsToHtml(tags) {
-            return (tags || []).map(t => {
+            return ((tags && tags.length) ? tags : ['Day']).map(t => {
                 let cls = 'tag-pill';
                 if (t === 'Eve') cls += ' tag-eve';
                 if (t === 'Night') cls += ' tag-night';
                 if (t === 'Sick') cls += ' tag-sick';
                 if (t === 'Wknd/Hol') cls += ' tag-wknd';
+                if (t === 'Day') cls += ' tag-day';
                 return `<span class="${cls}">${esc(t)}</span>`;
             }).join('');
         }
@@ -1287,7 +1319,7 @@
                 timelineEl.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:0.9rem;">No shifts logged for this month yet.</div>';
             } else {
                 monthlyShifts.forEach(s => {
-                    const d = parseLocalDate(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+                    const d = fmtDate(s.date);
 
                     timelineEl.innerHTML += `
                         <div class="timeline-card">
@@ -1314,7 +1346,7 @@
                 tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">No recorded shift entries found for this billing period.</td></tr>';
             } else {
                 monthlyShifts.forEach(s => {
-                    const dStr = parseLocalDate(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+                    const dStr = fmtDate(s.date);
 
                     tableBody.innerHTML += `
                         <tr>

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mairemi Care Timesheet & Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             /* Light Glassmorphism Design System */
@@ -533,7 +534,7 @@
             padding: 10px 14px;
             border: 1px solid var(--border-subtle);
             border-radius: 12px;
-            font-size: 0.95rem;
+            font-size: 1rem;
             outline: none;
             background: rgba(255,255,255,0.9);
         }
@@ -549,6 +550,17 @@
             margin-top: 6px;
         }
 
+        /* Login screen, locked state, read-only viewer mode, sync status */
+        #login-overlay { display: none; position: fixed; inset: 0; z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+        body.needs-login #login-overlay { display: flex; }
+        .login-card { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; }
+        .login-card input { font-size: 1rem; }
+        #login-error { color: var(--accent-rose); font-size: 0.85rem; font-weight: 600; min-height: 1em; }
+        body.locked .top-nav, body.locked .container, body.locked .mobile-float-bar { display: none !important; }
+        body.viewer .mobile-float-bar, body.viewer .view-switcher, body.viewer .btn-del { display: none !important; }
+        body.viewer { padding-bottom: 24px; }
+        #sync-status { display: none; background: var(--accent-amber-bg); color: var(--accent-amber); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.85rem; font-weight: 700; text-align: center; }
+
         /* Print / PDF Mode formatting */
         @media print {
             .top-nav, .mobile-float-bar, .btn-del, button { display: none !important; }
@@ -558,7 +570,18 @@
         }
     </style>
 </head>
-<body>
+<body class="locked">
+
+    <!-- Login (only Iane logs in; Mika uses the private link) -->
+    <div id="login-overlay">
+        <div class="glass-card login-card">
+            <div class="card-title">Mairemi Care</div>
+            <div class="input-group"><label>Email</label><input type="email" id="login-email" autocomplete="username"></div>
+            <div class="input-group"><label>Password</label><input type="password" id="login-password" autocomplete="current-password"></div>
+            <div id="login-error"></div>
+            <button class="btn-submit-shift" onclick="doLogin()">Log in</button>
+        </div>
+    </div>
 
     <!-- Navigation Header -->
     <header class="top-nav">
@@ -579,12 +602,15 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                     <span>Mac Dashboard</span>
                 </button>
+                <button class="switch-btn" id="btn-logout" onclick="logout()"><span>Log out</span></button>
             </div>
         </div>
     </header>
 
     <!-- Main Container -->
     <div class="container" id="app-container">
+
+        <div id="sync-status"></div>
 
         <!-- Active Shift Live Notification Banner -->
         <div id="live-shift-banner">
@@ -768,6 +794,15 @@
     </div>
 
     <script>
+        // --- SUPABASE (shared online database) ---
+        const SUPABASE_URL = 'https://rrvvnohfbwdhuejppacx.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_GLAggxHuBpYNm8MTIIiU_A_XhKgd-EB';
+        const VIEWER_TOKEN = new URLSearchParams(location.search).get('v'); // Mika's private link: ?v=...
+        const IS_VIEWER = !!VIEWER_TOKEN;
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: { persistSession: !IS_VIEWER, autoRefreshToken: !IS_VIEWER }
+        });
+
         // --- CONSTANTS & BUSINESS RULES ---
         const BASE_RATE = 15.50;
         const TARGET_HOURS = 80;
@@ -784,11 +819,11 @@
 
         // Finnish National Bank Holidays (2025-2027)
         const FI_HOLIDAYS = [
-            "2025-01-01", "2025-01-06", "2025-04-18", "2025-04-20", "2025-04-21",
-            "2025-05-01", "2025-05-29", "2025-06-08", "2025-06-20", "2025-06-21",
+            "2025-01-01", "2025-01-06", "2025-04-18", "2025-04-20", "2025-04-21", 
+            "2025-05-01", "2025-05-29", "2025-06-08", "2025-06-20", "2025-06-21", 
             "2025-11-01", "2025-12-06", "2025-12-24", "2025-12-25", "2025-12-26",
-            "2026-01-01", "2026-01-06", "2026-04-03", "2026-04-05", "2026-04-06",
-            "2026-05-01", "2026-05-14", "2026-05-24", "2026-06-19", "2026-06-20",
+            "2026-01-01", "2026-01-06", "2026-04-03", "2026-04-05", "2026-04-06", 
+            "2026-05-01", "2026-05-14", "2026-05-24", "2026-06-19", "2026-06-20", 
             "2026-10-31", "2026-12-06", "2026-12-24", "2026-12-25", "2026-12-26",
             "2027-01-01", "2027-01-06", "2027-03-26", "2027-03-28", "2027-03-29",
             "2027-05-01", "2027-05-06", "2027-05-16", "2027-06-25", "2027-06-26",
@@ -801,37 +836,134 @@
         function parseLocalDate(str) { return new Date(`${str}T00:00`); }
         const fmtH = n => n.toFixed(1).replace('.', ',');
         const fmtEur = n => n.toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+        const round2 = n => Math.round(n * 100) / 100;
         function esc(s) {
             return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
 
         // --- APPLICATION STATE ---
-        let shifts = JSON.parse(localStorage.getItem('mairemi_shifts')) || [];
-        let activeShiftStart = localStorage.getItem('mairemi_active_shift');
+        let shifts = [];
+        let activeShiftStart = null; // ISO string while a live shift is running
         let currentMonth = localDateStr(new Date()).slice(0, 7); // YYYY-MM (local time)
-        let activeViewMode = 'mobile'; // 'mobile' | 'mac'
+        let activeViewMode = window.innerWidth >= 900 ? 'mac' : 'mobile';
+        let busy = false;
 
-        // Auto-detect screen width to default to Mac view on desktop screen sizes
-        if (window.innerWidth >= 900) {
-            activeViewMode = 'mac';
+        // --- DATABASE <-> APP MAPPING ---
+        function rowToShift(r) {
+            const eve = Number(r.eve_bonus), night = Number(r.night_bonus), sat = Number(r.sat_bonus), sun = Number(r.sun_bonus);
+            return {
+                id: r.id,
+                kind: r.kind,
+                date: r.work_date,
+                start: r.start_time || '-',
+                end: r.end_time || '-',
+                notes: r.notes || '',
+                totalHours: Number(r.total_hours),
+                extraPay: eve + night + sat + sun,
+                tags: r.tags || [],
+                breakdown: { eveBonus: eve, nightBonus: night, satBonus: sat, sunBonus: sun }
+            };
         }
 
-        // --- INITIALIZATION ---
-        function init() {
-            document.getElementById('input-date').value = localDateStr(new Date());
+        function shiftSortKey(s) { return new Date(s.date + 'T' + (s.start !== '-' ? s.start : '00:00')); }
 
-            if (activeShiftStart) {
-                const startTime = new Date(activeShiftStart);
-                document.getElementById('live-shift-banner').style.display = 'block';
-                document.getElementById('banner-start-time').innerText = startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                const btn = document.getElementById('btn-toggle-shift');
-                btn.style.background = 'var(--accent-rose)';
-                document.getElementById('btn-toggle-text').innerText = 'End Shift Now';
+        function setSyncStatus(msg) {
+            const el = document.getElementById('sync-status');
+            el.innerText = msg;
+            el.style.display = msg ? 'block' : 'none';
+        }
+
+        async function loadShifts() {
+            let res;
+            if (IS_VIEWER) {
+                res = await sb.rpc('viewer_shifts', { p_token: VIEWER_TOKEN });
+            } else {
+                res = await sb.from('shifts').select('*');
             }
-
-            setAppMode(activeViewMode);
+            if (res.error) {
+                setSyncStatus('Could not load data. Check your internet connection.');
+                return false;
+            }
+            shifts = res.data.map(rowToShift).sort((a, b) => shiftSortKey(b) - shiftSortKey(a));
+            setSyncStatus('');
             populateMonthDropdowns();
             updateView();
+            return true;
+        }
+
+        async function loadActiveShift() {
+            const { data, error } = await sb.from('active_shift').select('started_at').maybeSingle();
+            if (!error) {
+                activeShiftStart = data ? data.started_at : null;
+                renderActiveShift();
+            }
+        }
+
+        function renderActiveShift() {
+            const banner = document.getElementById('live-shift-banner');
+            const btn = document.getElementById('btn-toggle-shift');
+            if (activeShiftStart) {
+                banner.style.display = 'block';
+                document.getElementById('banner-start-time').innerText = new Date(activeShiftStart).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                btn.style.background = 'var(--accent-rose)';
+                document.getElementById('btn-toggle-text').innerText = 'End Shift Now';
+            } else {
+                banner.style.display = 'none';
+                btn.style.background = 'var(--text-main)';
+                document.getElementById('btn-toggle-text').innerText = 'Start Shift';
+            }
+        }
+
+        // --- LOGIN / STARTUP ---
+        function showLogin() {
+            document.body.classList.add('needs-login');
+        }
+
+        async function doLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errEl = document.getElementById('login-error');
+            errEl.innerText = '';
+            if (!email || !password) { errEl.innerText = 'Enter email and password.'; return; }
+            const { error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) { errEl.innerText = 'Wrong email or password.'; return; }
+            document.body.classList.remove('needs-login');
+            await startApp();
+        }
+
+        async function logout() {
+            await sb.auth.signOut();
+            location.reload();
+        }
+
+        async function startApp() {
+            document.body.classList.remove('locked');
+            document.getElementById('input-date').value = localDateStr(new Date());
+            setAppMode(activeViewMode);
+            await Promise.all([loadShifts(), loadActiveShift()]);
+        }
+
+        async function boot() {
+            document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+            if (IS_VIEWER) {
+                // Mika: read-only dashboard, no login
+                document.body.classList.remove('locked');
+                document.body.classList.add('viewer');
+                setAppMode('mac');
+                await loadShifts();
+                setInterval(loadShifts, 60000);
+            } else {
+                const { data } = await sb.auth.getSession();
+                if (data.session) { await startApp(); } else { showLogin(); }
+            }
+
+            // Refresh when the page comes back to the foreground
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState !== 'visible') return;
+                if (IS_VIEWER) { loadShifts(); }
+                else if (!document.body.classList.contains('locked')) { loadShifts(); loadActiveShift(); }
+            });
         }
 
         // --- VIEW SWITCHING ---
@@ -873,11 +1005,11 @@
         function calculateShiftDetails(dateStr, startStr, endStr) {
             const start = new Date(`${dateStr}T${startStr}`);
             let end = new Date(`${dateStr}T${endStr}`);
-
+            
             if (end < start) {
                 end.setDate(end.getDate() + 1); // Crossing midnight
             }
-
+            
             const totalHours = (end - start) / (1000 * 60 * 60);
             if (!(totalHours > 0)) return null;
 
@@ -911,43 +1043,50 @@
             if (nightBonus > 0) tags.push('Night');
             if (satBonus > 0 || sunBonus > 0) tags.push('Wknd/Hol');
 
-            return {
-                totalHours,
-                extraPay,
-                tags,
-                breakdown: { eveBonus, nightBonus, satBonus, sunBonus }
+            return { 
+                totalHours, 
+                extraPay, 
+                tags, 
+                breakdown: { eveBonus, nightBonus, satBonus, sunBonus } 
             };
         }
 
-        // --- ACTIONS ---
-        function toggleShiftState() {
-            if (activeShiftStart) {
-                const start = new Date(activeShiftStart);
-                const end = new Date();
-                const dateStr = localDateStr(start);
-                const startStr = start.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
-                const endStr = end.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
+        // --- ACTIONS (all saved to the shared database) ---
+        async function toggleShiftState() {
+            if (IS_VIEWER || busy) return;
+            busy = true;
+            try {
+                if (activeShiftStart) {
+                    const start = new Date(activeShiftStart);
+                    const end = new Date();
+                    const dateStr = localDateStr(start);
+                    const startStr = start.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
+                    const endStr = end.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
 
-                addShiftToStorage(dateStr, startStr, endStr, "Live shift timer");
-
-                localStorage.removeItem('mairemi_active_shift');
-                activeShiftStart = null;
-                document.getElementById('live-shift-banner').style.display = 'none';
-                const btn = document.getElementById('btn-toggle-shift');
-                btn.style.background = 'var(--text-main)';
-                document.getElementById('btn-toggle-text').innerText = 'Start Shift';
-            } else {
-                const now = new Date();
-                localStorage.setItem('mairemi_active_shift', now.toISOString());
-                activeShiftStart = now.toISOString();
-                init();
+                    const result = await addShift(dateStr, startStr, endStr, "Live shift timer");
+                    if (result !== 'error') {
+                        const { error } = await sb.from('active_shift').delete().eq('singleton', true);
+                        if (error) { alert("The shift was saved, but the timer could not be cleared. Reload the page."); return; }
+                        activeShiftStart = null;
+                        renderActiveShift();
+                    }
+                } else {
+                    const nowIso = new Date().toISOString();
+                    const { error } = await sb.from('active_shift').upsert({ singleton: true, started_at: nowIso });
+                    if (error) { alert("Could not start the shift. Check your internet connection."); return; }
+                    activeShiftStart = nowIso;
+                    renderActiveShift();
+                }
+            } finally {
+                busy = false;
             }
         }
 
-        function logSickToday() {
+        async function logSickToday() {
+            if (IS_VIEWER || busy) return;
             const today = new Date();
             const day = today.getDay();
-
+            
             // Sick days restricted to Mon (1), Tue (2), Wed (3), Fri (5) -- Thurs (4) & Weekends off
             if (day === 0 || day === 4 || day === 6) {
                 alert("Sick leave can only be logged for scheduled work days (Mon, Tue, Wed, Fri).");
@@ -961,22 +1100,25 @@
             }
 
             if (confirm("Log today as a Paid Sick Day? (Credits 3.0 hours to your monthly bank)")) {
-                shifts.push({
-                    id: Date.now().toString(),
-                    date: dateStr,
-                    start: "-",
-                    end: "-",
-                    notes: "Paid Sick Leave",
-                    totalHours: 3.0,
-                    extraPay: 0,
-                    tags: ['Sick'],
-                    breakdown: { eveBonus:0, nightBonus:0, satBonus:0, sunBonus:0 }
-                });
-                saveData();
+                busy = true;
+                try {
+                    const { error } = await sb.from('shifts').insert({
+                        kind: 'sick',
+                        work_date: dateStr,
+                        notes: 'Paid Sick Leave',
+                        total_hours: 3.0,
+                        tags: ['Sick']
+                    });
+                    if (error) { alert("Could not save. Check your internet connection."); return; }
+                    await loadShifts();
+                } finally {
+                    busy = false;
+                }
             }
         }
 
-        function saveManualShift() {
+        async function saveManualShift() {
+            if (IS_VIEWER || busy) return;
             const dateStr = document.getElementById('input-date').value;
             const startStr = document.getElementById('input-start').value;
             const endStr = document.getElementById('input-end').value;
@@ -987,49 +1129,60 @@
                 return;
             }
 
-            if (addShiftToStorage(dateStr, startStr, endStr, notes)) {
-                document.getElementById('manual-form-el').classList.remove('open');
-                document.getElementById('input-start').value = '';
-                document.getElementById('input-end').value = '';
-                document.getElementById('input-notes').value = '';
+            busy = true;
+            try {
+                if (await addShift(dateStr, startStr, endStr, notes) === 'ok') {
+                    document.getElementById('manual-form-el').classList.remove('open');
+                    document.getElementById('input-start').value = '';
+                    document.getElementById('input-end').value = '';
+                    document.getElementById('input-notes').value = '';
+                }
+            } finally {
+                busy = false;
             }
         }
 
-        function addShiftToStorage(dateStr, startStr, endStr, notes) {
+        // returns 'ok' | 'invalid' | 'error'
+        async function addShift(dateStr, startStr, endStr, notes) {
             const details = calculateShiftDetails(dateStr, startStr, endStr);
             if (!details) {
                 alert("Invalid shift times.");
-                return false;
+                return 'invalid';
             }
 
-            shifts.push({
-                id: Date.now().toString(),
-                date: dateStr,
-                start: startStr,
-                end: endStr,
-                notes: notes,
-                totalHours: details.totalHours,
-                extraPay: details.extraPay,
-                tags: details.tags,
-                breakdown: details.breakdown
+            const { error } = await sb.from('shifts').insert({
+                kind: 'work',
+                work_date: dateStr,
+                start_time: startStr,
+                end_time: endStr,
+                notes: notes || null,
+                total_hours: details.totalHours,
+                eve_bonus: round2(details.breakdown.eveBonus),
+                night_bonus: round2(details.breakdown.nightBonus),
+                sat_bonus: round2(details.breakdown.satBonus),
+                sun_bonus: round2(details.breakdown.sunBonus),
+                tags: details.tags
             });
-
-            saveData();
-            return true;
-        }
-
-        function deleteShift(id) {
-            if (confirm("Delete this shift record?")) {
-                shifts = shifts.filter(s => s.id !== id);
-                saveData();
+            if (error) {
+                alert("Could not save the shift. Check your internet connection and try again.");
+                return 'error';
             }
+            await loadShifts();
+            return 'ok';
         }
 
-        function saveData() {
-            shifts.sort((a, b) => new Date(b.date + 'T' + (b.start !== '-' ? b.start : '00:00')) - new Date(a.date + 'T' + (a.start !== '-' ? a.start : '00:00')));
-            localStorage.setItem('mairemi_shifts', JSON.stringify(shifts));
-            populateMonthDropdowns(); // new/removed months must appear in the dropdown
-            updateView();
+        async function deleteShift(id) {
+            if (IS_VIEWER || busy) return;
+            if (confirm("Delete this shift record?")) {
+                busy = true;
+                try {
+                    const { error } = await sb.from('shifts').delete().eq('id', id);
+                    if (error) { alert("Could not delete. Check your internet connection."); return; }
+                    await loadShifts();
+                } finally {
+                    busy = false;
+                }
+            }
         }
 
         function populateMonthDropdowns() {
@@ -1072,7 +1225,7 @@
 
             const monthHours = monthlyShifts.reduce((acc, s) => acc + s.totalHours, 0);
             const totalPremiums = monthlyShifts.reduce((acc, s) => acc + (s.extraPay || 0), 0);
-
+            
             const extraHours = Math.max(0, monthHours - TARGET_HOURS);
             const overtimePay = extraHours * BASE_RATE;
             const totalGrossPay = BASE_SALARY + overtimePay + totalPremiums;
@@ -1167,7 +1320,7 @@
             }
         }
 
-        init();
+        boot();
     </script>
 </body>
 </html>

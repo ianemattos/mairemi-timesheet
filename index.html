@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mairemi Care Timesheet & Dashboard</title>
+    <style>
+        :root {
+            /* Light Glassmorphism Design System */
+            --bg-slate: #F8FAFC;
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --card-border: rgba(255, 255, 255, 0.6);
+            --card-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+            --card-blur: blur(16px);
+
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --text-light: #94A3B8;
+
+            --accent-green: #10B981;
+            --accent-green-bg: rgba(16, 185, 129, 0.1);
+            --accent-blue: #3B82F6;
+            --accent-blue-bg: rgba(59, 130, 246, 0.1);
+            --accent-purple: #8B5CF6;
+            --accent-purple-bg: rgba(139, 92, 246, 0.1);
+            --accent-amber: #F59E0B;
+            --accent-amber-bg: rgba(245, 158, 11, 0.1);
+            --accent-rose: #EF4444;
+            --accent-rose-bg: rgba(239, 68, 68, 0.1);
+
+            --border-subtle: rgba(226, 232, 240, 0.8);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-slate);
+            background-image:
+                radial-gradient(at 0% 0%, hsla(210,100%,94%,1) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(160,100%,94%,1) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, hsla(230,100%,96%,1) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: 90px;
+        }
+
+        /* Top Navigation Bar */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            z-index: 90;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 14px 24px;
+        }
+
+        .top-nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.15rem;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+        }
+
+        .brand-badge {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .view-switcher {
+            display: flex;
+            background: rgba(241, 245, 249, 0.8);
+            padding: 3px;
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .switch-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 14px;
+            border-radius: 9px;
+            font-size: 0.825rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .switch-btn.active {
+            background: white;
+            color: var(--text-main);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        /* Layout Container */
+        .container {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 20px;
+        }
+
+        /* Glass Cards */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--card-blur);
+            -webkit-backdrop-filter: var(--card-blur);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* Mobile Container Constraint (when in mobile mode) */
+        .mobile-mode-wrap {
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        /* Desktop Grid Layout (Mika Dashboard Mode) */
+        .desktop-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .desktop-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Header Row in Cards */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .month-select-styled {
+            background: rgba(255,255,255,0.8);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 6px 12px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-main);
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* Ring Progress Component */
+        .ring-wrapper {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            margin: 0 auto 16px auto;
+        }
+
+        .progress-ring { transform: rotate(-90deg); }
+        .progress-ring__circle-bg { fill: transparent; stroke: rgba(16, 185, 129, 0.12); stroke-width: 12; }
+        .progress-ring__circle {
+            fill: transparent;
+            stroke: var(--accent-green);
+            stroke-width: 12;
+            stroke-linecap: round;
+            stroke-dasharray: 440;
+            stroke-dashoffset: 440;
+            transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.3));
+        }
+
+        .ring-text {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ring-val {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+
+        .ring-sub {
+            font-size: 0.725rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        /* Pay Display Block */
+        .pay-hero {
+            text-align: center;
+            padding: 18px 0 14px 0;
+            border-top: 1px solid var(--border-subtle);
+            margin-top: 16px;
+        }
+
+        .pay-amount {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #10B981, #059669);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2px;
+        }
+
+        .pay-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        /* Stat Grid */
+        .metrics-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .metric-box {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .metric-box-val {
+            font-weight: 800;
+            font-size: 1.15rem;
+        }
+
+        .metric-box-lbl {
+            font-size: 0.685rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        /* Employer Multipliers Summary Table (Mika Dashboard) */
+        .breakdown-list {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+
+        .breakdown-lbl { font-weight: 600; color: var(--text-muted); }
+        .breakdown-val { font-weight: 700; }
+
+        /* Timeline / Shift List */
+        .timeline-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .timeline-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 16px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: transform 0.15s ease;
+        }
+
+        .timeline-card:hover {
+            transform: translateY(-1px);
+        }
+
+        .tc-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .tc-date {
+            font-weight: 700;
+            font-size: 0.975rem;
+        }
+
+        .tc-time {
+            font-size: 0.825rem;
+            color: var(--text-muted);
+        }
+
+        .tc-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 2px;
+        }
+
+        .tag-pill {
+            font-size: 0.685rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+        }
+        .tag-eve { background: var(--accent-blue-bg); color: var(--accent-blue); }
+        .tag-night { background: var(--accent-purple-bg); color: var(--accent-purple); }
+        .tag-sick { background: var(--accent-amber-bg); color: var(--accent-amber); }
+        .tag-wknd { background: var(--accent-rose-bg); color: var(--accent-rose); }
+
+        .tc-right {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .tc-hours {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .tc-bonus {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .btn-del {
+            background: none;
+            border: none;
+            color: var(--accent-rose);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 4px;
+        }
+
+        /* Desktop Table View for Mika */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .mika-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+
+        .mika-table th {
+            background: rgba(241, 245, 249, 0.7);
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.725rem;
+            letter-spacing: 0.5px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .mika-table td {
+            padding: 14px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-main);
+        }
+
+        .mika-table tr:hover td {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Floating Mobile Navigation Bar */
+        .mobile-float-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-subtle);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+        }
+
+        .mobile-float-inner {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-action {
+            border: none;
+            border-radius: 100px;
+            padding: 14px 20px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-action:active { transform: scale(0.97); }
+
+        .btn-main-shift {
+            background: var(--text-main);
+            color: white;
+            flex: 2;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.15);
+        }
+
+        .btn-sick-day {
+            background: rgba(15, 23, 42, 0.05);
+            color: var(--text-main);
+            flex: 1;
+        }
+
+        /* Active Shift Banner */
+        #live-shift-banner {
+            display: none;
+            background: var(--accent-green-bg);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+            padding: 12px 16px;
+            border-radius: 14px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+            margin-bottom: 20px;
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3); }
+            70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Manual Shift Collapsible Form */
+        .form-collapsible {
+            display: none;
+            flex-direction: column;
+            gap: 14px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .form-collapsible.open { display: flex; }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .input-group label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .input-group input {
+            padding: 10px 14px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            outline: none;
+            background: rgba(255,255,255,0.9);
+        }
+
+        .btn-submit-shift {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        /* Print / PDF Mode formatting */
+        @media print {
+            .top-nav, .mobile-float-bar, .btn-del, button { display: none !important; }
+            body { background: white; padding: 0; color: black; }
+            .glass-card { box-shadow: none; border: 1px solid #ccc; backdrop-filter: none; background: white; }
+            .container { max-width: 100%; margin: 0; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Header -->
+    <header class="top-nav">
+        <div class="top-nav-inner">
+            <div class="brand-logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-blue);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>Mairemi Care</span>
+                <span class="brand-badge">Nanny Hub</span>
+            </div>
+
+            <!-- Mode Switcher -->
+            <div class="view-switcher">
+                <button class="switch-btn active" id="btn-mode-mobile" onclick="setAppMode('mobile')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                    <span>Mobile Log</span>
+                </button>
+                <button class="switch-btn" id="btn-mode-mac" onclick="setAppMode('mac')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    <span>Mac Dashboard</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container" id="app-container">
+
+        <!-- Active Shift Live Notification Banner -->
+        <div id="live-shift-banner">
+            ● Active Shift in Progress — Started at <span id="banner-start-time">--:--</span>
+        </div>
+
+        <!-- MOBILE VIEW LAYOUT -->
+        <div id="mobile-view-wrap" class="mobile-mode-wrap">
+            <div class="glass-card">
+                <div class="card-header">
+                    <select id="month-select-mobile" class="month-select-styled" onchange="onMonthChange(this.value)"></select>
+                    <button style="background:none;border:none;color:var(--accent-blue);font-weight:700;font-size:0.875rem;cursor:pointer;" onclick="toggleManualForm()">+ Add Shift</button>
+                </div>
+
+                <!-- Collapsible Manual Shift Form -->
+                <div class="form-collapsible" id="manual-form-el">
+                    <div class="input-group"><label>Date</label><input type="date" id="input-date"></div>
+                    <div style="display:flex;gap:10px;">
+                        <div class="input-group" style="flex:1;"><label>Start Time</label><input type="time" id="input-start"></div>
+                        <div class="input-group" style="flex:1;"><label>End Time</label><input type="time" id="input-end"></div>
+                    </div>
+                    <div class="input-group"><label>Notes / Activity</label><input type="text" id="input-notes" placeholder="e.g. Park visit with Maire & Remi"></div>
+                    <button class="btn-submit-shift" onclick="saveManualShift()">Save Shift Entry</button>
+                </div>
+
+                <!-- Ring Progress -->
+                <div class="ring-wrapper">
+                    <svg class="progress-ring" width="160" height="160">
+                        <circle class="progress-ring__circle-bg" cx="80" cy="80" r="70" />
+                        <circle class="progress-ring__circle" id="ring-path-mobile" cx="80" cy="80" r="70" />
+                    </svg>
+                    <div class="ring-text">
+                        <div class="ring-val" id="worked-hours-mobile">0,0h</div>
+                        <div class="ring-sub" id="worked-lbl-mobile">Worked</div>
+                    </div>
+                </div>
+
+                <div style="text-align:center; font-size:0.8rem; color:var(--text-muted); font-weight:600; margin-bottom:12px;">
+                    <span id="remaining-hours-mobile" style="color:var(--text-main);">80,0h</span> remaining in monthly contract bank
+                </div>
+
+                <!-- Pay Metric -->
+                <div class="pay-hero">
+                    <div class="pay-amount" id="pay-total-mobile">1 240,00 €</div>
+                    <div class="pay-subtitle">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        Guaranteed Base Floor (1 240 €) + Shift Bonuses
+                    </div>
+                </div>
+
+                <div class="metrics-grid-2">
+                    <div class="metric-box">
+                        <div class="metric-box-val" id="overtime-hours-mobile">0,0h</div>
+                        <div class="metric-box-lbl">Overtime</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-box-val" id="bonus-pay-mobile" style="color:var(--accent-blue)">+0,00 €</div>
+                        <div class="metric-box-lbl">Shift Premiums</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Timeline Log -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:28px 0 16px 0; padding:0 4px;">
+                <h3 style="font-size:1.05rem; font-weight:800;">Recent Shift Log</h3>
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="log-count-text">0 shifts</span>
+            </div>
+
+            <div class="timeline-list" id="timeline-list-mobile"></div>
+        </div>
+
+
+        <!-- MAC DESKTOP DASHBOARD LAYOUT (MIKA VIEW) -->
+        <div id="mac-view-wrap" style="display:none;">
+            <div class="desktop-grid">
+
+                <!-- Left Sidebar Summary Column -->
+                <div style="display:flex; flex-direction:column; gap:20px;">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <span class="card-title">Monthly Overview</span>
+                            <select id="month-select-mac" class="month-select-styled" onchange="onMonthChange(this.value)"></select>
+                        </div>
+
+                        <div class="ring-wrapper">
+                            <svg class="progress-ring" width="160" height="160">
+                                <circle class="progress-ring__circle-bg" cx="80" cy="80" r="70" />
+                                <circle class="progress-ring__circle" id="ring-path-mac" cx="80" cy="80" r="70" />
+                            </svg>
+                            <div class="ring-text">
+                                <div class="ring-val" id="worked-hours-mac">0,0h</div>
+                                <div class="ring-sub" id="worked-lbl-mac">80h Target</div>
+                            </div>
+                        </div>
+
+                        <div class="pay-hero">
+                            <div class="pay-amount" id="pay-total-mac">1 240,00 €</div>
+                            <div class="pay-subtitle">Verified Total Salary Payout</div>
+                        </div>
+
+                        <!-- Multipliers Breakdown List for Mika -->
+                        <div style="margin-top:16px;">
+                            <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Salary Breakdown</div>
+
+                            <div class="breakdown-list">
+                                <div class="breakdown-row">
+                                    <span class="breakdown-lbl">Guaranteed Salary Base</span>
+                                    <span class="breakdown-val">1 240,00 €</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span class="breakdown-lbl">Overtime Pay (&gt;80h @ 15,50 €)</span>
+                                    <span class="breakdown-val" id="mac-ot-pay">0,00 €</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span class="breakdown-lbl">Evening Multiplier (+15%)</span>
+                                    <span class="breakdown-val" id="mac-eve-bonus">0,00 €</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span class="breakdown-lbl">Night Multiplier (+40%)</span>
+                                    <span class="breakdown-val" id="mac-night-bonus">0,00 €</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span class="breakdown-lbl">Saturday Multiplier (+20%)</span>
+                                    <span class="breakdown-val" id="mac-sat-bonus">0,00 €</span>
+                                </div>
+                                <div class="breakdown-row">
+                                    <span class="breakdown-lbl">Sunday / Holiday (+100%)</span>
+                                    <span class="breakdown-val" id="mac-sun-bonus">0,00 €</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="window.print()" style="width:100%; margin-top:18px; padding:10px; border-radius:12px; border:1px solid var(--border-subtle); background:white; font-weight:700; font-size:0.85rem; cursor:pointer; color:var(--text-main);">
+                            🖨️ Export Monthly Report (PDF / Print)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Data Ledger Column -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <div>
+                            <span class="card-title">Detailed Shift Ledger</span>
+                            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Audit trail & minute-by-minute rate breakdown</div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="mika-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time Interval</th>
+                                    <th>Total Hours</th>
+                                    <th>Shift Tags</th>
+                                    <th>Notes</th>
+                                    <th style="text-align:right;">Shift Bonus</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mika-table-body">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Mobile Action Bar -->
+    <div class="mobile-float-bar" id="mobile-nav-bar">
+        <div class="mobile-float-inner">
+            <button class="btn-action btn-sick-day" onclick="logSickToday()">💊 Sick Day</button>
+            <button class="btn-action btn-main-shift" id="btn-toggle-shift" onclick="toggleShiftState()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span id="btn-toggle-text">Start Shift</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS & BUSINESS RULES ---
+        const BASE_RATE = 15.50;
+        const TARGET_HOURS = 80;
+        const BASE_SALARY = 1240.00;
+        const CIRCUMFERENCE = 440;
+
+        const MULTIPLIERS = {
+            normal: 1.0,
+            evening: 1.15, // Mon-Fri 18:00 - 22:00 (+15%)
+            night: 1.40,   // Mon-Fri 22:00 - 06:00 (+40%)
+            saturday: 1.20,// Sat All Day (+20%)
+            sunday_holiday: 2.00 // Sun & Bank Holidays All Day (+100%)
+        };
+
+        // Finnish National Bank Holidays (2025-2027)
+        const FI_HOLIDAYS = [
+            "2025-01-01", "2025-01-06", "2025-04-18", "2025-04-20", "2025-04-21",
+            "2025-05-01", "2025-05-29", "2025-06-08", "2025-06-20", "2025-06-21",
+            "2025-11-01", "2025-12-06", "2025-12-24", "2025-12-25", "2025-12-26",
+            "2026-01-01", "2026-01-06", "2026-04-03", "2026-04-05", "2026-04-06",
+            "2026-05-01", "2026-05-14", "2026-05-24", "2026-06-19", "2026-06-20",
+            "2026-10-31", "2026-12-06", "2026-12-24", "2026-12-25", "2026-12-26",
+            "2027-01-01", "2027-01-06", "2027-03-26", "2027-03-28", "2027-03-29",
+            "2027-05-01", "2027-05-06", "2027-05-16", "2027-06-25", "2027-06-26",
+            "2027-11-06", "2027-12-06", "2027-12-24", "2027-12-25", "2027-12-26"
+        ];
+
+        // --- HELPERS (local time, comma decimals, HTML escaping) ---
+        const pad2 = n => String(n).padStart(2, '0');
+        function localDateStr(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+        function parseLocalDate(str) { return new Date(`${str}T00:00`); }
+        const fmtH = n => n.toFixed(1).replace('.', ',');
+        const fmtEur = n => n.toLocaleString('fi-FI', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        // --- APPLICATION STATE ---
+        let shifts = JSON.parse(localStorage.getItem('mairemi_shifts')) || [];
+        let activeShiftStart = localStorage.getItem('mairemi_active_shift');
+        let currentMonth = localDateStr(new Date()).slice(0, 7); // YYYY-MM (local time)
+        let activeViewMode = 'mobile'; // 'mobile' | 'mac'
+
+        // Auto-detect screen width to default to Mac view on desktop screen sizes
+        if (window.innerWidth >= 900) {
+            activeViewMode = 'mac';
+        }
+
+        // --- INITIALIZATION ---
+        function init() {
+            document.getElementById('input-date').value = localDateStr(new Date());
+
+            if (activeShiftStart) {
+                const startTime = new Date(activeShiftStart);
+                document.getElementById('live-shift-banner').style.display = 'block';
+                document.getElementById('banner-start-time').innerText = startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const btn = document.getElementById('btn-toggle-shift');
+                btn.style.background = 'var(--accent-rose)';
+                document.getElementById('btn-toggle-text').innerText = 'End Shift Now';
+            }
+
+            setAppMode(activeViewMode);
+            populateMonthDropdowns();
+            updateView();
+        }
+
+        // --- VIEW SWITCHING ---
+        function setAppMode(mode) {
+            activeViewMode = mode;
+            const mobileWrap = document.getElementById('mobile-view-wrap');
+            const macWrap = document.getElementById('mac-view-wrap');
+            const btnMobile = document.getElementById('btn-mode-mobile');
+            const btnMac = document.getElementById('btn-mode-mac');
+            const navBar = document.getElementById('mobile-nav-bar');
+
+            if (mode === 'mobile') {
+                mobileWrap.style.display = 'block';
+                macWrap.style.display = 'none';
+                btnMobile.classList.add('active');
+                btnMac.classList.remove('active');
+                navBar.style.display = 'flex';
+            } else {
+                mobileWrap.style.display = 'none';
+                macWrap.style.display = 'block';
+                btnMac.classList.add('active');
+                btnMobile.classList.remove('active');
+                navBar.style.display = 'flex'; // Keep active logging accessible
+            }
+        }
+
+        function onMonthChange(val) {
+            currentMonth = val;
+            document.getElementById('month-select-mobile').value = val;
+            document.getElementById('month-select-mac').value = val;
+            updateView();
+        }
+
+        function toggleManualForm() {
+            document.getElementById('manual-form-el').classList.toggle('open');
+        }
+
+        // --- CALCULATION ENGINE ---
+        function calculateShiftDetails(dateStr, startStr, endStr) {
+            const start = new Date(`${dateStr}T${startStr}`);
+            let end = new Date(`${dateStr}T${endStr}`);
+
+            if (end < start) {
+                end.setDate(end.getDate() + 1); // Crossing midnight
+            }
+
+            const totalHours = (end - start) / (1000 * 60 * 60);
+            if (!(totalHours > 0)) return null;
+
+            let extraPay = 0;
+            let eveBonus = 0, nightBonus = 0, satBonus = 0, sunBonus = 0;
+            let tags = [];
+
+            let currentMin = new Date(start);
+
+            while (currentMin < end) {
+                const day = currentMin.getDay();
+                const hr = currentMin.getHours();
+                const dKey = localDateStr(currentMin); // local date, not UTC
+                const isHol = FI_HOLIDAYS.includes(dKey);
+
+                if (day === 0 || isHol) {
+                    sunBonus += (1 / 60) * BASE_RATE * (MULTIPLIERS.sunday_holiday - 1.0);
+                } else if (day === 6) {
+                    satBonus += (1 / 60) * BASE_RATE * (MULTIPLIERS.saturday - 1.0);
+                } else if (hr >= 22 || hr < 6) {
+                    nightBonus += (1 / 60) * BASE_RATE * (MULTIPLIERS.night - 1.0);
+                } else if (hr >= 18 && hr < 22) {
+                    eveBonus += (1 / 60) * BASE_RATE * (MULTIPLIERS.evening - 1.0);
+                }
+                currentMin.setMinutes(currentMin.getMinutes() + 1);
+            }
+
+            extraPay = eveBonus + nightBonus + satBonus + sunBonus;
+
+            if (eveBonus > 0) tags.push('Eve');
+            if (nightBonus > 0) tags.push('Night');
+            if (satBonus > 0 || sunBonus > 0) tags.push('Wknd/Hol');
+
+            return {
+                totalHours,
+                extraPay,
+                tags,
+                breakdown: { eveBonus, nightBonus, satBonus, sunBonus }
+            };
+        }
+
+        // --- ACTIONS ---
+        function toggleShiftState() {
+            if (activeShiftStart) {
+                const start = new Date(activeShiftStart);
+                const end = new Date();
+                const dateStr = localDateStr(start);
+                const startStr = start.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
+                const endStr = end.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
+
+                addShiftToStorage(dateStr, startStr, endStr, "Live shift timer");
+
+                localStorage.removeItem('mairemi_active_shift');
+                activeShiftStart = null;
+                document.getElementById('live-shift-banner').style.display = 'none';
+                const btn = document.getElementById('btn-toggle-shift');
+                btn.style.background = 'var(--text-main)';
+                document.getElementById('btn-toggle-text').innerText = 'Start Shift';
+            } else {
+                const now = new Date();
+                localStorage.setItem('mairemi_active_shift', now.toISOString());
+                activeShiftStart = now.toISOString();
+                init();
+            }
+        }
+
+        function logSickToday() {
+            const today = new Date();
+            const day = today.getDay();
+
+            // Sick days restricted to Mon (1), Tue (2), Wed (3), Fri (5) -- Thurs (4) & Weekends off
+            if (day === 0 || day === 4 || day === 6) {
+                alert("Sick leave can only be logged for scheduled work days (Mon, Tue, Wed, Fri).");
+                return;
+            }
+
+            const dateStr = localDateStr(today);
+            if (shifts.some(s => s.date === dateStr && s.tags.includes('Sick'))) {
+                alert("You have already logged a sick day for today.");
+                return;
+            }
+
+            if (confirm("Log today as a Paid Sick Day? (Credits 3.0 hours to your monthly bank)")) {
+                shifts.push({
+                    id: Date.now().toString(),
+                    date: dateStr,
+                    start: "-",
+                    end: "-",
+                    notes: "Paid Sick Leave",
+                    totalHours: 3.0,
+                    extraPay: 0,
+                    tags: ['Sick'],
+                    breakdown: { eveBonus:0, nightBonus:0, satBonus:0, sunBonus:0 }
+                });
+                saveData();
+            }
+        }
+
+        function saveManualShift() {
+            const dateStr = document.getElementById('input-date').value;
+            const startStr = document.getElementById('input-start').value;
+            const endStr = document.getElementById('input-end').value;
+            const notes = document.getElementById('input-notes').value;
+
+            if (!dateStr || !startStr || !endStr) {
+                alert("Please fill in Date, Start, and End times.");
+                return;
+            }
+
+            if (addShiftToStorage(dateStr, startStr, endStr, notes)) {
+                document.getElementById('manual-form-el').classList.remove('open');
+                document.getElementById('input-start').value = '';
+                document.getElementById('input-end').value = '';
+                document.getElementById('input-notes').value = '';
+            }
+        }
+
+        function addShiftToStorage(dateStr, startStr, endStr, notes) {
+            const details = calculateShiftDetails(dateStr, startStr, endStr);
+            if (!details) {
+                alert("Invalid shift times.");
+                return false;
+            }
+
+            shifts.push({
+                id: Date.now().toString(),
+                date: dateStr,
+                start: startStr,
+                end: endStr,
+                notes: notes,
+                totalHours: details.totalHours,
+                extraPay: details.extraPay,
+                tags: details.tags,
+                breakdown: details.breakdown
+            });
+
+            saveData();
+            return true;
+        }
+
+        function deleteShift(id) {
+            if (confirm("Delete this shift record?")) {
+                shifts = shifts.filter(s => s.id !== id);
+                saveData();
+            }
+        }
+
+        function saveData() {
+            shifts.sort((a, b) => new Date(b.date + 'T' + (b.start !== '-' ? b.start : '00:00')) - new Date(a.date + 'T' + (a.start !== '-' ? a.start : '00:00')));
+            localStorage.setItem('mairemi_shifts', JSON.stringify(shifts));
+            populateMonthDropdowns(); // new/removed months must appear in the dropdown
+            updateView();
+        }
+
+        function populateMonthDropdowns() {
+            const selectMobile = document.getElementById('month-select-mobile');
+            const selectMac = document.getElementById('month-select-mac');
+            selectMobile.innerHTML = '';
+            selectMac.innerHTML = '';
+
+            const months = new Set([localDateStr(new Date()).slice(0, 7), currentMonth, ...shifts.map(s => s.date.slice(0, 7))]);
+            const sortedMonths = Array.from(months).sort().reverse();
+
+            sortedMonths.forEach(m => {
+                const [year, month] = m.split('-');
+                const d = new Date(year, month - 1);
+                const textStr = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+                const opt1 = document.createElement('option'); opt1.value = m; opt1.text = textStr;
+                const opt2 = document.createElement('option'); opt2.value = m; opt2.text = textStr;
+
+                if (m === currentMonth) { opt1.selected = true; opt2.selected = true; }
+                selectMobile.appendChild(opt1);
+                selectMac.appendChild(opt2);
+            });
+        }
+
+        // --- RENDER & DOM UPDATES ---
+        function tagsToHtml(tags) {
+            return (tags || []).map(t => {
+                let cls = 'tag-pill';
+                if (t === 'Eve') cls += ' tag-eve';
+                if (t === 'Night') cls += ' tag-night';
+                if (t === 'Sick') cls += ' tag-sick';
+                if (t === 'Wknd/Hol') cls += ' tag-wknd';
+                return `<span class="${cls}">${esc(t)}</span>`;
+            }).join('');
+        }
+
+        function updateView() {
+            const monthlyShifts = shifts.filter(s => s.date.startsWith(currentMonth));
+
+            const monthHours = monthlyShifts.reduce((acc, s) => acc + s.totalHours, 0);
+            const totalPremiums = monthlyShifts.reduce((acc, s) => acc + (s.extraPay || 0), 0);
+
+            const extraHours = Math.max(0, monthHours - TARGET_HOURS);
+            const overtimePay = extraHours * BASE_RATE;
+            const totalGrossPay = BASE_SALARY + overtimePay + totalPremiums;
+
+            const progressPct = Math.min(100, (monthHours / TARGET_HOURS) * 100);
+            const ringOffset = CIRCUMFERENCE - (progressPct / 100) * CIRCUMFERENCE;
+
+            // Individual Multipliers Breakdown for Mika
+            let sumEve = 0, sumNight = 0, sumSat = 0, sumSun = 0;
+            monthlyShifts.forEach(s => {
+                if (s.breakdown) {
+                    sumEve += s.breakdown.eveBonus || 0;
+                    sumNight += s.breakdown.nightBonus || 0;
+                    sumSat += s.breakdown.satBonus || 0;
+                    sumSun += s.breakdown.sunBonus || 0;
+                }
+            });
+
+            // Update Mobile Metrics
+            document.getElementById('worked-hours-mobile').innerText = fmtH(monthHours) + 'h';
+            document.getElementById('remaining-hours-mobile').innerText = fmtH(Math.max(0, TARGET_HOURS - monthHours)) + 'h';
+            document.getElementById('pay-total-mobile').innerText = fmtEur(totalGrossPay);
+            document.getElementById('overtime-hours-mobile').innerText = fmtH(extraHours) + 'h';
+            document.getElementById('bonus-pay-mobile').innerText = '+' + fmtEur(totalPremiums);
+            document.getElementById('log-count-text').innerText = monthlyShifts.length + ' shift' + (monthlyShifts.length !== 1 ? 's' : '');
+
+            const ringPathMobile = document.getElementById('ring-path-mobile');
+            ringPathMobile.style.strokeDashoffset = ringOffset;
+            ringPathMobile.style.stroke = progressPct >= 100 ? "var(--accent-blue)" : "var(--accent-green)";
+
+            // Update Mac / Desktop Metrics
+            document.getElementById('worked-hours-mac').innerText = fmtH(monthHours) + 'h';
+            document.getElementById('pay-total-mac').innerText = fmtEur(totalGrossPay);
+            document.getElementById('mac-ot-pay').innerText = fmtEur(overtimePay);
+            document.getElementById('mac-eve-bonus').innerText = fmtEur(sumEve);
+            document.getElementById('mac-night-bonus').innerText = fmtEur(sumNight);
+            document.getElementById('mac-sat-bonus').innerText = fmtEur(sumSat);
+            document.getElementById('mac-sun-bonus').innerText = fmtEur(sumSun);
+
+            const ringPathMac = document.getElementById('ring-path-mac');
+            ringPathMac.style.strokeDashoffset = ringOffset;
+            ringPathMac.style.stroke = progressPct >= 100 ? "var(--accent-blue)" : "var(--accent-green)";
+
+            // Render Mobile Timeline List
+            const timelineEl = document.getElementById('timeline-list-mobile');
+            timelineEl.innerHTML = '';
+
+            if (monthlyShifts.length === 0) {
+                timelineEl.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:0.9rem;">No shifts logged for this month yet.</div>';
+            } else {
+                monthlyShifts.forEach(s => {
+                    const d = parseLocalDate(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+
+                    timelineEl.innerHTML += `
+                        <div class="timeline-card">
+                            <div class="tc-left">
+                                <span class="tc-date">${d}</span>
+                                <span class="tc-time">${esc(s.start)} - ${esc(s.end)} ${s.notes ? '• ' + esc(s.notes) : ''}</span>
+                                <div class="tc-tags">${tagsToHtml(s.tags)}</div>
+                            </div>
+                            <div class="tc-right">
+                                <span class="tc-hours">${fmtH(s.totalHours)}h</span>
+                                <span class="tc-bonus">+${fmtEur(s.extraPay || 0)}</span>
+                                <button class="btn-del" onclick="deleteShift('${esc(s.id)}')">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // Render Mac Table Body for Mika
+            const tableBody = document.getElementById('mika-table-body');
+            tableBody.innerHTML = '';
+
+            if (monthlyShifts.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">No recorded shift entries found for this billing period.</td></tr>';
+            } else {
+                monthlyShifts.forEach(s => {
+                    const dStr = parseLocalDate(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td style="font-weight:700;">${dStr}</td>
+                            <td>${esc(s.start)} — ${esc(s.end)}</td>
+                            <td style="font-weight:700;">${fmtH(s.totalHours)} hrs</td>
+                            <td>${tagsToHtml(s.tags)}</td>
+                            <td style="color:var(--text-muted);">${esc(s.notes) || '-'}</td>
+                            <td style="text-align:right; font-weight:700; color:var(--accent-green);">+${fmtEur(s.extraPay || 0)}</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

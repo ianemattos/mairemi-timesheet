@@ -97,6 +97,18 @@ body.needs-login #login{display:flex}
 body.locked header.top,body.locked .wrap,body.locked nav.tabs{display:none!important}
 #err{color:var(--danger);font-size:.85rem;font-weight:600;min-height:1em}
 #sync{display:none;background:var(--eve-bg);color:var(--eve);border-radius:12px;padding:10px;text-align:center;font-weight:700;font-size:.85rem}
+#cal{margin-top:14px}
+.cal-h,.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-h div{font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;padding-bottom:4px}
+.cal-d{aspect-ratio:1;border-radius:12px;background:rgba(255,255,255,.5);border:1px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.85rem;font-weight:700;cursor:pointer;padding:0;color:var(--text)}
+.cal-d.empty{background:none;cursor:default}
+.cal-d.today{border-color:var(--sage-d)}
+.cal-d.sel{background:var(--sage-d);color:#fff}
+.cal-dots{display:flex;gap:2px;height:6px}
+.cal-dots i{width:6px;height:6px;border-radius:50%;display:block}
+.dot-Day{background:var(--day)}.dot-Eve{background:var(--eve)}.dot-Night{background:var(--night)}.dot-Wknd{background:var(--wknd)}.dot-Sick{background:var(--sick)}
+.cal-d.sel .cal-dots i{box-shadow:0 0 0 1px #fff}
+.filter{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:.82rem;font-weight:700;color:var(--sage-d)}
 @media(min-width:900px){.grid2{display:grid;grid-template-columns:360px 1fr;gap:14px;align-items:start}}
 </style>
 </head>
@@ -163,7 +175,7 @@ body.locked header.top,body.locked .wrap,body.locked nav.tabs{display:none!impor
         <button class="btn" onclick="saveManual()">Save shift</button>
         <button class="btn ghost" onclick="logSick()">Log sick day today</button>
       </div>
-      <div id="list" style="margin-top:8px"></div>
+      <div id="cal"></div><div id="filter" class="filter hidden"></div><div id="list" style="margin-top:8px"></div>
     </div>
   </section>
 
@@ -229,7 +241,7 @@ function parseTime(s){const m=/^(\d{2}):(\d{2})$/.exec(s.trim());return(m&&+m[1]
 // Contract rule: start rounds down, end rounds up, to 15 minutes
 function roundHM(str,dir){const[h,m]=str.split(':').map(Number);let t=h*60+m;t=dir==='down'?Math.floor(t/15)*15:Math.ceil(t/15)*15;t%=1440;return `${pad2(Math.floor(t/60))}:${pad2(t%60)}`}
 
-let shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview';
+let shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null;
 
 const rowToShift=r=>{const e=+r.eve_bonus,n=+r.night_bonus,s=+r.sat_bonus,u=+r.sun_bonus;
   return{id:r.id,kind:r.kind,date:r.work_date,start:r.start_time?String(r.start_time).slice(0,5):'-',end:r.end_time?String(r.end_time).slice(0,5):'-',notes:r.notes||'',hours:+r.total_hours,extra:e+n+s+u,tags:r.tags||[],bd:{eve:e,night:n,sat:s,sun:u}}};
@@ -366,7 +378,8 @@ function monthDropdown(){
   const sel=document.getElementById('month');
   const set=new Set([localDate(new Date()).slice(0,7),month,...shifts.map(s=>s.date.slice(0,7))]);
   sel.innerHTML=[...set].sort().reverse().map(m=>{const[y,mo]=m.split('-');return `<option value="${m}"${m===month?' selected':''}>${new Date(y,mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'})}</option>`}).join('')}
-function onMonth(v){month=v;render()}
+function onMonth(v){month=v;selDay=null;render()}
+function pickDay(d){selDay=selDay===d?null:d;render()}
 function showView(v){view=v;document.querySelectorAll('.view').forEach(e=>e.classList.add('hidden'));document.getElementById('v-'+v).classList.remove('hidden');
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));window.scrollTo(0,0)}
 
@@ -384,10 +397,14 @@ function render(){
   document.getElementById('b-sat').innerText=fmtEur(T.prem.sat);
   document.getElementById('b-sun').innerText=fmtEur(T.prem.sun);
   // shifts
+  renderCal(T.ms);
+  const shown=selDay?T.ms.filter(s=>s.date===selDay):T.ms;
+  const fl=document.getElementById('filter');
+  if(selDay){fl.classList.remove('hidden');fl.innerHTML=`<span>${fmtDate(selDay)}</span><button class="link-btn" onclick="pickDay('${selDay}')">Show all</button>`}else fl.classList.add('hidden');
   document.getElementById('count').innerText=T.ms.length+' shift'+(T.ms.length!==1?'s':'');
-  document.getElementById('list').innerHTML=T.ms.length?T.ms.map(s=>`<div class="shift"><div><div class="d">${fmtDate(s.date)}</div>
+  document.getElementById('list').innerHTML=shown.length?shown.map(s=>`<div class="shift"><div><div class="d">${fmtDate(s.date)}</div>
     <div class="t">${s.kind==='sick'?'Sick day':esc(s.start)+' - '+esc(s.end)}${s.notes&&s.kind!=='sick'?' · '+esc(s.notes):''}</div><div class="tags">${tagsHtml(s.tags)}</div></div>
-    <div class="r"><div class="h">${fmtH(s.hours)}h</div><div class="b">+${fmtEur(s.extra)}</div>${IS_VIEWER?'':`<button class="del" onclick="deleteShift('${esc(s.id)}')">Delete</button>`}</div></div>`).join(''):'<div class="empty">No shifts this month.</div>';
+    <div class="r"><div class="h">${fmtH(s.hours)}h</div><div class="b">+${fmtEur(s.extra)}</div>${IS_VIEWER?'':`<button class="del" onclick="deleteShift('${esc(s.id)}')">Delete</button>`}</div></div>`).join(''):'<div class="empty">No shifts '+(selDay?'on this day.':'this month.')+'</div>';
   // payments
   const[y,mo]=month.split('-');
   document.getElementById('pay-title').innerText=new Date(y,mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'});
@@ -400,6 +417,16 @@ function render(){
   document.getElementById('pd-rows').innerHTML=(pd&&(pd.iban||pd.mobilepay||pd.account_holder))?have.map((r,i)=>`<div class="copyrow"><div><div class="k">${r[0]}</div><div class="val">${esc(r[1])}</div></div><button class="btn ghost small" onclick="copy(${JSON.stringify(String(r[2]||r[1])).replace(/"/g,'&quot;')},this)">Copy</button></div>`).join(''):'<div class="empty">No payment details yet.</div>';
   if(pd){document.getElementById('pd-name').value=pd.account_holder||'';document.getElementById('pd-iban').value=pd.iban||'';document.getElementById('pd-mp').value=pd.mobilepay||''}
 }
+
+function renderCal(ms){
+  const[y,mo]=month.split('-').map(Number);const first=new Date(y,mo-1,1),days=new Date(y,mo,0).getDate();
+  const lead=(first.getDay()+6)%7,today=localDate(new Date());
+  const by={};ms.forEach(s=>{(by[s.date]=by[s.date]||[]).push(...((s.tags&&s.tags.length)?s.tags:['Day']))});
+  let h='<div class="cal-h">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div>${d}</div>`).join('')+'</div><div class="cal-g">';
+  for(let i=0;i<lead;i++)h+='<div class="cal-d empty"></div>';
+  for(let d=1;d<=days;d++){const iso=`${month}-${pad2(d)}`;const tg=[...new Set((by[iso]||[]).map(tagCls))].slice(0,3);
+    h+=`<button class="cal-d${iso===today?' today':''}${iso===selDay?' sel':''}" onclick="pickDay('${iso}')">${d}<span class="cal-dots">${tg.map(t=>`<i class="dot-${t}"></i>`).join('')}</span></button>`}
+  document.getElementById('cal').innerHTML=h+'</div>'}
 
 // ---- monthly report PDF ----
 function plain(s){return String(s).replace(/[  ]/g,' ')}

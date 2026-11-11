@@ -56,6 +56,7 @@ select.msel{appearance:none;-webkit-appearance:none;background:#fff;border:none;
 .dchip b{font-size:17px;line-height:1}.dchip span{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-top:2px}
 .row .t{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}.row .tg{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
 .row .r{text-align:right;margin-left:auto}.row .r b{font-size:16px}.row .r div{font-size:12px;font-weight:600;color:var(--acc);margin-top:2px}
+.fw{font-weight:500;color:var(--muted);font-size:13px}
 .tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .tag-Day{background:rgba(40,130,210,.24);color:#0F4C85}.tag-Eve{background:rgba(255,149,0,.18);color:#8A4B00}
 .tag-Night{background:rgba(40,56,110,.30);color:#1A2656}.tag-Wknd{background:rgba(200,50,100,.20);color:#9A1F4C}
@@ -168,7 +169,7 @@ body.locked #app,body.locked #actions{display:none!important}
         <button class="pill-btn" style="margin:14px auto 0;display:flex" onclick="reportPdf()">Export PDF</button>
       </div>
       <div class="glass card desk" style="margin-top:12px"><div style="font-size:15px;font-weight:700;padding-bottom:8px">Shift ledger</div>
-        <table><thead><tr><th>Date</th><th>Time</th><th>Hours</th><th>Tags</th><th style="text-align:right">Bonus</th></tr></thead><tbody id="ledger"></tbody></table></div>
+        <table><thead><tr><th>Date</th><th>Time</th><th>Hours</th><th>For</th><th>Tags</th><th style="text-align:right">Bonus</th></tr></thead><tbody id="ledger"></tbody></table></div>
       <div class="bottom2 desk" style="margin-top:12px"><div class="glass card" style="flex:1"><div style="font-size:13px;font-weight:700;margin-bottom:4px">Premiums</div><div id="prem"></div></div>
         <div class="glass card" style="width:240px" id="paycard"></div></div>
     </section>
@@ -208,6 +209,7 @@ body.locked #app,body.locked #actions{display:none!important}
 
 <div class="overlay" id="sheet" onclick="if(event.target===this)closeSheet()"><div class="glass sheet">
   <div style="font-size:17px;font-weight:700" id="sheet-title">Add shift</div>
+  <div class="field"><label>For</label><div class="pill" style="align-self:flex-start"><span class="seg forbtn on" data-w="Mika" onclick="setFor('Mika')">Mika</span><span class="seg forbtn" data-w="Annina" onclick="setFor('Annina')">Annina</span></div></div>
   <div class="field"><label>Date</label><input id="i-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10" autocomplete="off"></div>
   <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Start</label><input id="i-start" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div>
     <div class="field" style="flex:1"><label>End</label><input id="i-end" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div></div>
@@ -245,10 +247,10 @@ function parseTime(s){const m=/^(\d{2}):(\d{2})$/.exec(s.trim());return(m&&+m[1]
 // Contract rule: start rounds down, end rounds up, to 15 minutes
 function roundHM(str,dir){const[h,m]=str.split(':').map(Number);let t=h*60+m;t=dir==='down'?Math.floor(t/15)*15:Math.ceil(t/15)*15;t%=1440;return `${pad2(Math.floor(t/60))}:${pad2(t%60)}`}
 
-let editId=null,shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null;
+let forWho='Mika',editId=null,shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null;
 
 const rowToShift=r=>{const e=+r.eve_bonus,n=+r.night_bonus,s=+r.sat_bonus,u=+r.sun_bonus;
-  return{id:r.id,kind:r.kind,date:r.work_date,start:r.start_time?String(r.start_time).slice(0,5):'-',end:r.end_time?String(r.end_time).slice(0,5):'-',notes:r.notes||'',hours:+r.total_hours,extra:e+n+s+u,tags:r.tags||[],bd:{eve:e,night:n,sat:s,sun:u}}};
+  return{id:r.id,household:r.household||'',kind:r.kind,date:r.work_date,start:r.start_time?String(r.start_time).slice(0,5):'-',end:r.end_time?String(r.end_time).slice(0,5):'-',notes:r.notes||'',hours:+r.total_hours,extra:e+n+s+u,tags:r.tags||[],bd:{eve:e,night:n,sat:s,sun:u}}};
 const sortKey=s=>new Date(s.date+'T'+(s.start!=='-'?s.start:'00:00'));
 const tagCls=t=>t==='Wknd/Hol'?'Wknd':t;
 const tagLbl=t=>t==='Wknd'?'Wknd/Hol':t;
@@ -294,13 +296,13 @@ function calc(dateStr,s,e){
   const tags=[];if(normal>0)tags.push('Day');if(eve>0)tags.push('Eve');if(night>0)tags.push('Night');if(sat>0||sun>0)tags.push('Wknd/Hol');
   return{hours,tags,eve,night,sat,sun}}
 
-function buildPayload(dateStr,s,e,notes){
+function buildPayload(dateStr,s,e,notes,who){
   const st=roundHM(s,'down'),en=roundHM(e,'up');
   const d=calc(dateStr,st,en);if(!d)return null;
-  return{kind:'work',work_date:dateStr,start_time:st,end_time:en,notes:notes||null,total_hours:d.hours,
+  return{kind:'work',household:who||null,work_date:dateStr,start_time:st,end_time:en,notes:notes||null,total_hours:d.hours,
     eve_bonus:round2(d.eve),night_bonus:round2(d.night),sat_bonus:round2(d.sat),sun_bonus:round2(d.sun),tags:d.tags}}
-async function addShift(dateStr,s,e,notes,id){
-  const p=buildPayload(dateStr,s,e,notes);if(!p){alert('Invalid shift times.');return 'invalid'}
+async function addShift(dateStr,s,e,notes,id,who){
+  const p=buildPayload(dateStr,s,e,notes,who);if(!p){alert('Invalid shift times.');return 'invalid'}
   const{error}=id?await sb.from('shifts').update(p).eq('id',id):await sb.from('shifts').insert(p);
   if(error){alert('Could not save the shift: '+error.message);return 'error'}
   await loadAll();return 'ok'}
@@ -318,7 +320,7 @@ async function toggleShift(){
   try{
     if(activeStart){
       const start=new Date(activeStart),end=new Date();
-      const r=await addShift(localDate(start),clock(start),clock(end),'Live shift timer');
+      const r=await addShift(localDate(start),clock(start),clock(end),'Live shift timer',null,lastFor());
       if(r!=='error'&&r!=='invalid'){
         const{error}=await sb.from('active_shift').delete().eq('singleton',true);
         if(error){alert('The shift was saved, but the timer could not be cleared. Reload the page.');return}
@@ -336,11 +338,13 @@ function renderActive(){
 
 // ---- actions ----
 function leftAction(){view==='shifts'?openSheet():logSick()}
-function editShift(id){const s=shifts.find(x=>x.id===id);if(!s||s.kind==='sick')return;editId=id;
+function lastFor(){const s=shifts.find(x=>x.household);return s?s.household:'Mika'}
+function setFor(w){forWho=w;document.querySelectorAll('.forbtn').forEach(b=>b.classList.toggle('on',b.dataset.w===w))}
+function editShift(id){const s=shifts.find(x=>x.id===id);if(!s||s.kind==='sick')return;editId=id;setFor(s.household||lastFor());
   document.getElementById('sheet-title').innerText='Edit shift';
   document.getElementById('i-date').value=isoDisp(s.date);document.getElementById('i-start').value=s.start;document.getElementById('i-end').value=s.end;
   document.getElementById('i-notes').value=s.notes==='Live shift timer'?'':s.notes;document.getElementById('sheet').classList.add('open')}
-function openSheet(){editId=null;document.getElementById('sheet-title').innerText='Add shift';['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='');const d=(selDay&&selDay.startsWith(month))?selDay:localDate(new Date());document.getElementById('i-date').value=isoDisp(d);document.getElementById('sheet').classList.add('open')}
+function openSheet(){editId=null;setFor(lastFor());document.getElementById('sheet-title').innerText='Add shift';['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='');const d=(selDay&&selDay.startsWith(month))?selDay:localDate(new Date());document.getElementById('i-date').value=isoDisp(d);document.getElementById('sheet').classList.add('open')}
 function closeSheet(){editId=null;document.getElementById('sheet').classList.remove('open')}
 async function logSick(){
   if(IS_VIEWER||busy)return;
@@ -359,7 +363,7 @@ async function saveManual(){
   if(!d){alert('Date must look like 10.11.2026.');return}
   if(!s||!e){alert('Start and end must look like 15:30 (24-hour).');return}
   busy=true;try{
-    if(await addShift(d,s,e,document.getElementById('i-notes').value,editId)==='ok'){
+    if(await addShift(d,s,e,document.getElementById('i-notes').value,editId,forWho)==='ok'){
       closeSheet();['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='');selDay=d;month=d.slice(0,7);renderAll()}
   }finally{busy=false}}
 async function deleteShift(id){
@@ -414,7 +418,7 @@ function pickDay(d){selDay=d;renderShifts()}
 function shiftRow(s,withDel){
   const d=new Date(s.date+'T00:00');
   return `<div class="glass row" onclick="pickDay('${s.date}');showView('shifts')"><div class="dchip"><b>${pad2(d.getDate())}</b><span>${WD[d.getDay()]}</span></div>
-    <div><div class="t">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</div><div class="tg">${tagsHtml(tagsOf(s))}</div></div>
+    <div><div class="t">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}${s.household?`<span class="fw"> · ${esc(s.household)}</span>`:''}</div><div class="tg">${tagsHtml(tagsOf(s))}</div></div>
     <div class="r"><b>${fmtH(s.hours)} h</b><div>+${fmtEur(s.extra)}</div></div></div>`}
 
 function renderOverview(){
@@ -430,7 +434,7 @@ function renderOverview(){
   document.getElementById('mini3').innerHTML=mini('Overtime',fmtH(Math.max(0,T.hours-TARGET))+' h')+mini('Premiums','+'+fmtEur(T.premTotal),'#2F6B57')+mini('Left',fmtH(Math.max(0,TARGET-T.hours))+' h');
   document.getElementById('ov-count').innerText=T.ms.length+' this month';
   document.getElementById('ov-rows').innerHTML=T.ms.length?T.ms.map(s=>shiftRow(s)).join(''):'<div class="glass card" style="text-align:center;color:var(--muted)">No shifts this month.</div>';
-  document.getElementById('ledger').innerHTML=T.ms.length?T.ms.map(s=>`<tr><td style="font-weight:600">${fmtDate(s.date)}</td><td class="tab-n">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</td><td style="font-weight:700">${fmtH(s.hours)} h</td><td><div style="display:flex;gap:6px">${tagsHtml(tagsOf(s))}</div></td><td style="text-align:right;font-weight:600;color:var(--acc)">+${fmtEur(s.extra)}</td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted)">No shifts this month.</td></tr>';
+  document.getElementById('ledger').innerHTML=T.ms.length?T.ms.map(s=>`<tr><td style="font-weight:600">${fmtDate(s.date)}</td><td class="tab-n">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</td><td style="font-weight:700">${fmtH(s.hours)} h</td><td>${esc(s.household)||'-'}</td><td><div style="display:flex;gap:6px">${tagsHtml(tagsOf(s))}</div></td><td style="text-align:right;font-weight:600;color:var(--acc)">+${fmtEur(s.extra)}</td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--muted)">No shifts this month.</td></tr>';
   document.getElementById('prem').innerHTML=[['Guaranteed base',BASE_SALARY],['Overtime over 80 h',T.ot],['Evening +15 %',T.prem.eve],['Night +40 %',T.prem.night],['Saturday +20 %',T.prem.sat],['Sunday / holiday +100 %',T.prem.sun]].map(r=>`<div class="kv"><span>${r[0]}</span><b>${fmtEur(r[1])}</b></div>`).join('');
   let pc=`<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">Payment</span><span class="chip ${isPaid?'ok':'open'}">${isPaid?'PAID':'OPEN'}</span></div>`;
   if(isPaid)pc+=`<div class="sub" style="margin-top:12px">Paid ${paidDate(month+':salary')}</div>`+(IS_VIEWER?'':`<button class="link red" style="margin-top:8px" onclick="undoPaid('${month}')">Undo paid</button>`);
@@ -454,7 +458,7 @@ function renderShifts(){
   document.getElementById('calg').innerHTML=h;
   const dl=by[selDay]||[],dd=new Date(selDay+'T00:00');
   let dc=`<div class="d1">${WDL[dd.getDay()]}</div><div class="d2">${isoDisp(selDay)}</div>`;
-  dc+=dl.length?dl.map(s=>`<div class="dshift"><div class="tm">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</div><div class="sub">${fmtH(s.hours)} h</div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${tagsHtml(tagsOf(s))}</div>
+  dc+=dl.length?dl.map(s=>`<div class="dshift"><div class="tm">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</div><div class="sub">${fmtH(s.hours)} h</div>${s.household?`<div class="sub" style="margin-top:12px">For</div><div style="font-size:14px;font-weight:600;margin-top:2px">${esc(s.household)}</div>`:''}<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${tagsHtml(tagsOf(s))}</div>
     ${s.notes&&s.kind!=='sick'?`<div class="sub" style="margin-top:12px">Note</div><div style="font-size:14px;font-weight:600;margin-top:2px">${esc(s.notes)}</div>`:''}
     <div class="sub" style="margin-top:12px">Premium</div><div style="font-size:14px;font-weight:700;margin-top:2px">+${fmtEur(s.extra)}</div>
     ${IS_VIEWER?'':`<div style="display:flex;gap:16px;margin-top:10px">${s.kind==='sick'?'':`<button class="link" onclick="editShift('${esc(s.id)}')">Edit</button>`}<button class="link red" onclick="deleteShift('${esc(s.id)}')">Delete</button></div>`}</div>`).join(''):`<div class="dshift sub">No shift on this day.</div>`;
@@ -507,7 +511,7 @@ function reportPdf(){
     doc.setFont('helvetica','bold');doc.text(fmtH(s.hours)+' h',80,yy);
     let px=98;((s.tags&&s.tags.length)?s.tags:['Day']).forEach(t=>{const k=tagCls(t),c=PILL[k]||PILL.Day,lb=tagLbl(t);doc.setFontSize(6.5);const w=doc.getTextWidth(lb)+4.5;
       doc.setFillColor(...c[1]);doc.roundedRect(px,yy-3.4,w,4.6,2.3,2.3,'F');doc.setTextColor(...c[0]);doc.text(lb,px+2.25,yy-.2);px+=w+1.5});
-    doc.setFont('helvetica','normal');doc.setFontSize(8.5);col(MUT);doc.text(s.kind==='sick'?'-':(s.notes||'-').slice(0,26),130,yy);
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);col(MUT);doc.text(s.kind==='sick'?'-':((s.household?s.household+(s.notes?' - ':''):'')+(s.notes||'')||'-').slice(0,28),130,yy);
     doc.setFont('helvetica','bold');col(INK);doc.text(plain('+'+fmtEur(s.extra)),R,yy,{align:'right'});
     yy+=2.5;doc.setDrawColor(...LINE);doc.setLineWidth(.2);doc.line(L,yy,R,yy);yy+=5.5});
   if(!T.ms.length){doc.setFont('helvetica','normal');col(MUT);doc.text('No shifts this month.',L,yy)}
@@ -553,7 +557,11 @@ async function startApp(){
   document.getElementById('i-date').value=isoDisp(localDate(new Date()));
   await Promise.all([loadAll(),loadActive(),loadCal()])}
 async function boot(){
-  [['i-date','date'],['i-start','time'],['i-end','time']].forEach(([id,k])=>document.getElementById(id).addEventListener('input',e=>e.target.value=digits(e.target.value,k)));
+  [['i-date','date'],['i-start','time'],['i-end','time']].forEach(([id,k])=>{const el=document.getElementById(id);
+    el.addEventListener('input',e=>{const t=e.target,pos=t.selectionStart;const before=t.value.slice(0,pos).replace(/\D/g,'').length;
+      t.value=digits(t.value,k);let n=0,np=t.value.length;if(before===0)np=0;else for(let i=0;i<t.value.length;i++){if(/\d/.test(t.value[i]))n++;if(n===before){np=i+1;break}}
+      t.setSelectionRange(np,np)});
+    el.addEventListener('focus',e=>setTimeout(()=>e.target.select(),0))});
   document.getElementById('i-date').addEventListener('blur',e=>{const d=parseDate(e.target.value);if(d)e.target.value=isoDisp(d)});
   document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
   initSlider();

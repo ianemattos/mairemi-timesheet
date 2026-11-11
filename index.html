@@ -276,7 +276,7 @@ async function loadAll(){
   const q=IS_VIEWER?[sb.rpc('viewer_shifts',{p_token:TOKEN}),sb.rpc('viewer_paid_months',{p_token:TOKEN}),sb.rpc('viewer_payment_details',{p_token:TOKEN}),sb.rpc('viewer_requests',{p_token:TOKEN})]
     :[sb.from('shifts').select('*'),sb.from('paid_months').select('*'),sb.from('payment_details').select('*').maybeSingle(),sb.from('shift_requests').select('*').order('work_date')];
   const[a,b,c,rq]=await Promise.all(q);
-  requests=(rq&&!rq.error&&rq.data)?rq.data.map(r=>({...r,start_time:String(r.start_time).slice(0,5),end_time:String(r.end_time).slice(0,5)})):[];
+  requests=(rq&&!rq.error&&Array.isArray(rq.data))?rq.data.map(r=>({...r,start_time:String(r.start_time).slice(0,5),end_time:String(r.end_time).slice(0,5)})):[];
   if(a.error){setSync('Could not load data. Check your internet connection.');return false}
   if(b.error||c.error)setSync('Payments data: '+(b.error||c.error).message);else setSync('');
   shifts=a.data.map(rowToShift).sort((x,y)=>sortKey(y)-sortKey(x));
@@ -412,6 +412,14 @@ async function cancelRequest(id){
   try{const{error}=await sb.rpc('cancel_request',{p_token:TOKEN,p_id:id});
     if(error){alert('Could not cancel: '+error.message);return}await loadAll()}finally{busy=false}}
 const pendingReq=()=>requests.filter(r=>r.status==='requested');
+const alertReq=()=>requests.filter(r=>r.status==='requested'||(!IS_VIEWER&&r.status==='cancelled'));
+async function cancelShift(id){
+  if(busy||!confirm('Cancel this shift? Iane will be told.'))return;busy=true;
+  try{const{error}=await sb.rpc('cancel_shift',{p_token:TOKEN,p_id:id});
+    if(error){alert('Could not cancel: '+error.message);return}await loadAll()}finally{busy=false}}
+async function dismissReq(id){
+  const{error}=await sb.from('shift_requests').update({status:'seen'}).eq('id',id);
+  if(error){alert('Could not save: '+error.message);return}await loadAll()}
 
 // ---- payments ----
 async function markPaid(m){
@@ -508,7 +516,7 @@ function renderShifts(){
   dc+=dl.length?dl.map(s=>`<div class="dshift"><div class="tm">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</div><div class="sub">${fmtH(s.hours)} h</div>${s.household?`<div class="sub" style="margin-top:12px">For</div><div style="font-size:14px;font-weight:600;margin-top:2px">${esc(s.household)}</div>`:''}<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${tagsHtml(tagsOf(s),isPlanned(s))}</div>
     ${s.notes&&s.kind!=='sick'?`<div class="sub" style="margin-top:12px">Note</div><div style="font-size:14px;font-weight:600;margin-top:2px">${esc(s.notes)}</div>`:''}
     <div class="sub" style="margin-top:12px">Premium</div><div style="font-size:14px;font-weight:700;margin-top:2px">+${fmtEur(s.extra)}</div>
-    ${IS_VIEWER?'':`<div style="display:flex;gap:16px;margin-top:10px">${s.kind==='sick'?'':`<button class="link" onclick="editShift('${esc(s.id)}')">Edit</button>`}<button class="link red" onclick="deleteShift('${esc(s.id)}')">Delete</button></div>`}</div>`).join(''):`<div class="dshift sub">No shift on this day.</div>`;
+    ${IS_VIEWER?(s.household===me&&s.start!=='-'&&new Date(s.date+'T'+s.start)>new Date()?`<button class="link red" style="margin-top:10px" onclick="cancelShift('${esc(s.id)}')">Cancel shift</button>`:''):`<div style="display:flex;gap:16px;margin-top:10px">${s.kind==='sick'?'':`<button class="link" onclick="editShift('${esc(s.id)}')">Edit</button>`}<button class="link red" onclick="deleteShift('${esc(s.id)}')">Delete</button></div>`}</div>`).join(''):`<div class="dshift sub">No shift on this day.</div>`;
   const dr=pendingReq().filter(r=>r.work_date===selDay);
   dc+=dr.map(r=>`<div class="dshift"><div class="tm">${esc(r.start_time)} – ${esc(r.end_time)}</div><div class="sub"><span class="chip open">Requested</span> ${esc(r.household)}${r.note?' · '+esc(r.note):''}</div>${IS_VIEWER?(r.household===me?`<button class="link red" style="margin-top:8px" onclick="cancelRequest('${r.id}')">Cancel request</button>`:''):`<div style="display:flex;gap:16px;margin-top:8px"><button class="link" onclick="acceptRequest('${r.id}')">Accept</button><button class="link red" onclick="declineRequest('${r.id}')">Decline</button></div>`}</div>`).join('');
   if(!dl.length&&dr.length)dc=dc.replace('<div class="dshift sub">No shift on this day.</div>','');
@@ -520,13 +528,14 @@ function renderShifts(){
 function renderRequests(){
   const el=document.getElementById('reqcard'),pend=pendingReq();
   const mine=IS_VIEWER?requests.filter(r=>r.household===me&&r.status!=='requested'&&r.work_date>=localDate(new Date())):[];
-  const rows=[...pend,...mine];
-  document.querySelectorAll('.nbadge').forEach(b=>{if(!IS_VIEWER&&pend.length){b.innerText=pend.length+' new';b.classList.remove('hidden')}else b.classList.add('hidden')});
+  const al=alertReq();
+  const rows=IS_VIEWER?[...pend,...mine]:al;
+  document.querySelectorAll('.nbadge').forEach(b=>{if(!IS_VIEWER&&al.length){b.innerText=al.length+' new';b.classList.remove('hidden')}else b.classList.add('hidden')});
   if(!rows.length){el.classList.add('hidden');return}
   el.classList.remove('hidden');
   el.innerHTML=`<div style="font-size:15px;font-weight:700;margin-bottom:4px">Requests</div>`+rows.map(r=>{
-    const chip=r.status==='requested'?'<span class="chip open">Requested</span>':r.status==='accepted'?'<span class="chip ok">Accepted</span>':'<span class="chip dec">Declined</span>';
-    const act=r.status!=='requested'?'':IS_VIEWER?(r.household===me?`<button class="link red" onclick="cancelRequest('${r.id}')">Cancel</button>`:''):`<button class="pbtn" onclick="acceptRequest('${r.id}')">Accept</button><button class="link red" onclick="declineRequest('${r.id}')">Decline</button>`;
+    const chip=r.status==='requested'?'<span class="chip open">Requested</span>':r.status==='accepted'?'<span class="chip ok">Accepted</span>':r.status==='cancelled'?'<span class="chip dec">Cancelled</span>':'<span class="chip dec">Declined</span>';
+    const act=r.status==='cancelled'?(IS_VIEWER?'':`<button class="pbtn" onclick="dismissReq('${r.id}')">OK</button>`):r.status!=='requested'?'':IS_VIEWER?(r.household===me?`<button class="link red" onclick="cancelRequest('${r.id}')">Cancel</button>`:''):`<button class="pbtn" onclick="acceptRequest('${r.id}')">Accept</button><button class="link red" onclick="declineRequest('${r.id}')">Decline</button>`;
     return `<div class="reqrow"><div class="n"><b>${esc(r.household)} · ${fmtDate(r.work_date)}</b><div>${esc(r.start_time)} – ${esc(r.end_time)}${r.note?' · '+esc(r.note):''}</div></div>${chip}${act}</div>`}).join('')}
 
 function renderPayments(){

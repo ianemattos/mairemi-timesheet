@@ -241,6 +241,7 @@ async function loadAll(){
     :[sb.from('shifts').select('*'),sb.from('paid_months').select('*'),sb.from('payment_details').select('*').maybeSingle()];
   const[a,b,c]=await Promise.all(q);
   if(a.error){setSync('Could not load data. Check your internet connection.');return false}
+  if(b.error||c.error)setSync('Payments data: '+(b.error||c.error).message);
   shifts=a.data.map(rowToShift).sort((x,y)=>sortKey(y)-sortKey(x));
   paid={};(b.data||[]).forEach(r=>paid[r.month+':'+r.kind]=r.paid_at);
   pd=IS_VIEWER?((c.data&&c.data[0])||null):(c.data||null);
@@ -336,7 +337,7 @@ async function markPaid(){
   if(busy||paid[month+':salary'])return;
   if(!confirm('Mark this month\'s salary as paid?'))return;busy=true;
   try{const{error}=IS_VIEWER?await sb.rpc('mark_paid',{p_token:TOKEN,p_month:month,p_kind:'salary'}):await sb.from('paid_months').upsert({month,kind:'salary'});
-    if(error){alert('Could not save. Check your internet connection.');return}await loadAll()}finally{busy=false}}
+    if(error){alert('Could not save: '+error.message);return}await loadAll()}finally{busy=false}}
 async function undoPaid(){
   if(IS_VIEWER||busy||!confirm('Undo paid for this month?'))return;busy=true;
   try{const{error}=await sb.from('paid_months').delete().eq('month',month).eq('kind','salary');
@@ -390,7 +391,7 @@ function render(){
   document.getElementById('pay-title').innerText=new Date(y,mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'});
   document.getElementById('pay-amt').innerText=fmtEur(T.total);
   document.getElementById('pay-chip').innerHTML=chip;
-  document.getElementById('mark-btn').classList.toggle('hidden',isPaid);
+  document.getElementById('mark-btn').classList.toggle('hidden',isPaid||!IS_VIEWER);
   document.getElementById('undo-btn').classList.toggle('hidden',!isPaid||IS_VIEWER);
   const rows=[['Amount',fmtEur(T.total),fmtEur(T.total).replace(/\s/g,' ')],['Name',pd&&pd.account_holder],['IBAN',pd&&pd.iban],['MobilePay',pd&&pd.mobilepay]];
   const have=rows.filter(r=>r[1]);

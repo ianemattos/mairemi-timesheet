@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Mairemi Care">
 <title>Mairemi Care Timesheet</title>
@@ -527,7 +528,7 @@ function renderShifts(){
 
 function renderRequests(){
   const el=document.getElementById('reqcard'),pend=pendingReq();
-  const mine=IS_VIEWER?requests.filter(r=>r.household===me&&r.status!=='requested'&&r.work_date>=localDate(new Date())):[];
+  const mine=IS_VIEWER?requests.filter(r=>r.household===me&&r.status==='declined'&&r.work_date>=localDate(new Date())):[];
   const al=alertReq();
   const rows=IS_VIEWER?[...pend,...mine]:al;
   document.querySelectorAll('.nbadge').forEach(b=>{if(!IS_VIEWER&&al.length){b.innerText=al.length+' new';b.classList.remove('hidden')}else b.classList.add('hidden')});

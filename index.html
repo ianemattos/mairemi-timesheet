@@ -143,6 +143,7 @@ body.locked #app,body.locked #actions{display:none!important}
 .rtr .ra{text-align:right;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}.rtr .ra .link{display:block;margin:3px 0 0 auto;padding:0}
 .rdesk{display:none}.rtr .rf,.rtr .rm,.rtr .rd{font-size:13px;line-height:1.35}.rtr .rd small{font-size:12px}
 @media(min-width:900px){.rt .rtr,.rt .rth{grid-template-columns:28px 78px minmax(0,1fr) 96px 150px 84px;gap:0 14px}.rth{display:grid}.rdesk{display:block}.rmob{display:none!important}.rtr .ri{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
+.shead{display:flex;justify-content:space-between;align-items:center;gap:10px}.xbtn{flex:none;width:32px;height:32px;border-radius:50%;border:none;background:rgba(60,90,70,.10);color:var(--ink);font-size:22px;line-height:1;cursor:pointer}
 </style>
 </head>
 <body class="locked">
@@ -234,7 +235,7 @@ body.locked #app,body.locked #actions{display:none!important}
 </div>
 
 <div class="overlay" id="sheet" onclick="if(event.target===this)closeSheet()"><div class="glass sheet">
-  <div style="font-size:17px;font-weight:700" id="sheet-title">Add shift</div>
+  <div class="shead"><div style="font-size:17px;font-weight:700" id="sheet-title">Add shift</div><button class="xbtn" aria-label="Close" onclick="closeSheet()">&times;</button></div>
   <div class="field" id="for-field"><label>For</label><div class="pill" style="align-self:flex-start"><span class="seg forbtn on" data-w="Mika" onclick="setFor('Mika')">Mika</span><span class="seg forbtn" data-w="Annina" onclick="setFor('Annina')">Annina</span></div></div>
   <div class="field"><label>Date</label><input id="i-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10" autocomplete="off"></div>
   <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Start</label><input id="i-start" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div>
@@ -244,7 +245,7 @@ body.locked #app,body.locked #actions{display:none!important}
   <button class="btn" id="sheet-save" onclick="saveManual()">Save shift</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>
 </div></div>
 <div class="overlay" id="rsheet" onclick="if(event.target===this)closeRSheet()"><div class="glass sheet" style="max-height:92vh;overflow:auto">
-  <div style="font-size:17px;font-weight:700" id="rsheet-title">Add receipt</div>
+  <div class="shead"><div style="font-size:17px;font-weight:700" id="rsheet-title">Add receipt</div><button class="xbtn" aria-label="Close" onclick="closeRSheet()">&times;</button></div>
   <div class="field"><label>For</label><div class="pill" style="align-self:flex-start"><span class="seg rforbtn on" data-w="Maire & Remi" onclick="setRFor('Maire & Remi')">Maire &amp; Remi</span><span class="seg rforbtn" data-w="Iane" onclick="setRFor('Iane')">Iane</span><span class="seg rforbtn" data-w="Split" onclick="setRFor('Split')">Split</span></div></div>
   <div class="field hidden" id="r-iane-f"><label>Iane's share (€), the rest is Maire &amp; Remi</label><input id="r-iane" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
   <div class="field"><label>Meal (pick one or more)</label><div class="pill" style="align-self:flex-start"><span class="seg rmealbtn" data-w="Lunch" onclick="toggleMeal('Lunch')">Lunch</span><span class="seg rmealbtn on" data-w="Snack" onclick="toggleMeal('Snack')">Snack</span><span class="seg rmealbtn" data-w="Dinner" onclick="toggleMeal('Dinner')">Dinner</span><span class="seg rmealbtn" data-w="Coffee" onclick="toggleMeal('Coffee')">Coffee</span></div></div>
@@ -257,7 +258,7 @@ body.locked #app,body.locked #actions{display:none!important}
   <button class="btn" onclick="saveReceipt()">Save receipt</button><button class="btn ghost hidden" id="r-del" style="color:#B3463A" onclick="deleteReceipt()">Delete receipt</button><button class="btn ghost" onclick="closeRSheet()">Cancel</button>
 </div></div>
 <div class="overlay" id="isheet" onclick="if(event.target===this)closeISheet()"><div class="glass sheet" style="max-height:92vh;overflow:auto">
-  <div style="font-size:17px;font-weight:700">Paste receipt log</div>
+  <div class="shead"><div style="font-size:17px;font-weight:700">Paste receipt log</div><button class="xbtn" aria-label="Close" onclick="closeISheet()">&times;</button></div>
   <div class="hint">Paste the table from your tracking chat. Receipts already in the app are skipped, so pasting the whole log again is safe.</div>
   <textarea id="i-log" rows="9" placeholder="#  Date  Day  Time  Place  Total  Items  Category  For" style="width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font-size:14px;background:rgba(255,255,255,.9);color:var(--ink);font-family:inherit"></textarea>
   <button class="btn" onclick="importLog()">Import</button><button class="btn ghost" onclick="closeISheet()">Cancel</button>

@@ -340,8 +340,10 @@ async function markPaid(){
     if(error){alert('Could not save: '+error.message);return}await loadAll()}finally{busy=false}}
 async function undoPaid(){
   if(IS_VIEWER||busy||!confirm('Undo paid for this month?'))return;busy=true;
-  try{const{error}=await sb.from('paid_months').delete().eq('month',month).eq('kind','salary');
-    if(error){alert('Could not save.');return}await loadAll()}finally{busy=false}}
+  try{const{data,error}=await sb.from('paid_months').delete().eq('month',month).eq('kind','salary').select();
+    if(error){alert('Could not undo: '+error.message);return}
+    if(!data||!data.length){alert('Nothing was removed. Check that you are logged in, then reload and try again.');return}
+    await loadAll()}catch(e){alert('Undo failed: '+e.message)}finally{busy=false}}
 async function savePD(){
   const{error}=await sb.from('payment_details').upsert({singleton:true,account_holder:document.getElementById('pd-name').value.trim(),iban:document.getElementById('pd-iban').value.trim(),mobilepay:document.getElementById('pd-mp').value.trim()});
   if(error){alert('Could not save.');return}document.getElementById('pd-form').classList.remove('open');await loadAll()}

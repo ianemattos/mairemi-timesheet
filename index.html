@@ -102,8 +102,8 @@ td{padding:11px 10px;border-top:1px solid var(--line)}
 /* sheet + login */
 .overlay{position:fixed;inset:0;z-index:150;background:rgba(30,42,36,.25);display:none;align-items:flex-end;justify-content:center;padding:14px}
 .overlay.open{display:flex}.sheet{width:100%;max-width:440px;padding:20px;display:flex;flex-direction:column;gap:12px;background:rgba(255,255,255,.85)}
-.field{display:flex;flex-direction:column;gap:4px}.field label{font-size:12px;font-weight:700;color:var(--muted)}
-.field input{padding:12px 14px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:rgba(255,255,255,.9);color:var(--ink)}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}.field label{font-size:12px;font-weight:700;color:var(--muted)}
+.field input{width:100%;min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:rgba(255,255,255,.9);color:var(--ink)}
 .btn{border:none;border-radius:14px;padding:14px;font-weight:700;font-size:15px;cursor:pointer;background:#1E2A24;color:#fff;width:100%}
 .btn.ghost{background:rgba(255,255,255,.7);color:var(--ink);border:1px solid var(--line)}
 .hint{font-size:12px;color:var(--muted)}
@@ -114,6 +114,7 @@ body.locked #app,body.locked #actions{display:none!important}
 #syncmsg{display:none;margin:0 4px 10px;padding:10px;border-radius:12px;background:rgba(255,149,0,.2);color:#8A4B00;text-align:center;font-weight:700;font-size:13px}
 @media(max-width:899px){.desk{display:none!important}}
 @media(min-width:900px){
+  .overlay{align-items:center}
   #side{display:flex}#pills{display:none}.mob{display:none!important}
   main{padding:0 24px 130px 8px}
   .hdr{padding-top:22px}.hdr h1{font-size:24px;letter-spacing:-.5px}
@@ -181,7 +182,7 @@ body.locked #app,body.locked #actions{display:none!important}
       <div id="shifts-cal" class="calwrap"><div class="calmain glass card" style="padding:12px 14px"><div class="calg cal-hd" id="cal-hd"></div><div class="calg" id="calg"></div></div>
         <div class="calside"><div class="glass card daycard" id="daycard"></div><div class="glass card" id="monthcard"></div></div></div>
       <div id="shifts-list" class="rows hidden"></div>
-      <div style="text-align:center;margin-top:14px"><button class="link" id="cal-copy" onclick="copyCal(this)">Copy calendar link (Google Calendar)</button></div>
+      <div style="text-align:center;margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:8px"><a class="pill-btn mob" id="cal-open2" href="#">Add to my calendar</a><button class="link" id="cal-copy" onclick="copyCal(this)">Copy calendar link</button></div>
     </section>
 
     <!-- PAYMENTS -->
@@ -206,7 +207,7 @@ body.locked #app,body.locked #actions{display:none!important}
 </div>
 
 <div class="overlay" id="sheet" onclick="if(event.target===this)closeSheet()"><div class="glass sheet">
-  <div style="font-size:17px;font-weight:700">Add shift</div>
+  <div style="font-size:17px;font-weight:700" id="sheet-title">Add shift</div>
   <div class="field"><label>Date</label><input id="i-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10" autocomplete="off"></div>
   <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Start</label><input id="i-start" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div>
     <div class="field" style="flex:1"><label>End</label><input id="i-end" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div></div>
@@ -238,12 +239,13 @@ const clock=d=>`${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const monthName=m=>{const[y,mo]=m.split('-');return new Date(y,mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'})};
 function digits(v,kind){const d=v.replace(/\D/g,'');if(kind==='date'){const x=d.slice(0,8);let o=x.slice(0,2);if(x.length>2)o+='.'+x.slice(2,4);if(x.length>4)o+='.'+x.slice(4,8);return o}const t=d.slice(0,4);return t.length>2?t.slice(0,2)+':'+t.slice(2):t}
-function parseDate(s){const m=/^(\d{2})\.(\d{2})\.(\d{4})$/.exec(s.trim());if(!m)return null;const iso=`${m[3]}-${m[2]}-${m[1]}`;const d=new Date(iso+'T00:00');return(!isNaN(d)&&localDate(d)===iso)?iso:null}
+function fullYear(y){return y.length===2?'20'+y:y}
+function parseDate(s){const m=/^(\d{2})\.(\d{2})\.(\d{2}|\d{4})$/.exec(s.trim());if(!m)return null;const iso=`${fullYear(m[3])}-${m[2]}-${m[1]}`;const d=new Date(iso+'T00:00');return(!isNaN(d)&&localDate(d)===iso)?iso:null}
 function parseTime(s){const m=/^(\d{2}):(\d{2})$/.exec(s.trim());return(m&&+m[1]<24&&+m[2]<60)?`${m[1]}:${m[2]}`:null}
 // Contract rule: start rounds down, end rounds up, to 15 minutes
 function roundHM(str,dir){const[h,m]=str.split(':').map(Number);let t=h*60+m;t=dir==='down'?Math.floor(t/15)*15:Math.ceil(t/15)*15;t%=1440;return `${pad2(Math.floor(t/60))}:${pad2(t%60)}`}
 
-let shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null;
+let editId=null,shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null;
 
 const rowToShift=r=>{const e=+r.eve_bonus,n=+r.night_bonus,s=+r.sat_bonus,u=+r.sun_bonus;
   return{id:r.id,kind:r.kind,date:r.work_date,start:r.start_time?String(r.start_time).slice(0,5):'-',end:r.end_time?String(r.end_time).slice(0,5):'-',notes:r.notes||'',hours:+r.total_hours,extra:e+n+s+u,tags:r.tags||[],bd:{eve:e,night:n,sat:s,sun:u}}};
@@ -272,9 +274,11 @@ async function loadActive(){
   if(!error){activeStart=data?data.started_at:null;renderActive()}}
 async function loadCal(){
   const{data,error}=await sb.rpc('calendar_token',IS_VIEWER?{p_token:TOKEN}:{});
-  if(error||!data){document.getElementById('cal-open').classList.add('hidden');document.getElementById('cal-copy').classList.add('hidden');return}
+  if(error||!data){document.getElementById('cal-open').classList.add('hidden');document.getElementById('cal-open2').classList.add('hidden');document.getElementById('cal-copy').classList.add('hidden');return}
   calUrl=`${SUPABASE_URL}/rest/v1/rpc/calendar_feed?p_token=${data}&apikey=${SUPABASE_KEY}`;
-  document.getElementById('cal-open').href=calUrl.replace('https://','webcal://')}
+  const web=calUrl.replace('https://','webcal://');
+  const href=IS_VIEWER?'https://calendar.google.com/calendar/r?cid='+encodeURIComponent(web):web;
+  ['cal-open','cal-open2'].forEach(id=>{const a=document.getElementById(id);a.href=href;if(IS_VIEWER){a.target='_blank';a.innerText='Add to Google Calendar'}})}
 function copyCal(b){if(calUrl)copy(calUrl,b)}
 
 // ---- calculation ----
@@ -290,12 +294,15 @@ function calc(dateStr,s,e){
   const tags=[];if(normal>0)tags.push('Day');if(eve>0)tags.push('Eve');if(night>0)tags.push('Night');if(sat>0||sun>0)tags.push('Wknd/Hol');
   return{hours,tags,eve,night,sat,sun}}
 
-async function addShift(dateStr,s,e,notes){
+function buildPayload(dateStr,s,e,notes){
   const st=roundHM(s,'down'),en=roundHM(e,'up');
-  const d=calc(dateStr,st,en);if(!d){alert('Invalid shift times.');return 'invalid'}
-  const{error}=await sb.from('shifts').insert({kind:'work',work_date:dateStr,start_time:st,end_time:en,notes:notes||null,total_hours:d.hours,
-    eve_bonus:round2(d.eve),night_bonus:round2(d.night),sat_bonus:round2(d.sat),sun_bonus:round2(d.sun),tags:d.tags});
-  if(error){alert('Could not save the shift. Check your internet connection.');return 'error'}
+  const d=calc(dateStr,st,en);if(!d)return null;
+  return{kind:'work',work_date:dateStr,start_time:st,end_time:en,notes:notes||null,total_hours:d.hours,
+    eve_bonus:round2(d.eve),night_bonus:round2(d.night),sat_bonus:round2(d.sat),sun_bonus:round2(d.sun),tags:d.tags}}
+async function addShift(dateStr,s,e,notes,id){
+  const p=buildPayload(dateStr,s,e,notes);if(!p){alert('Invalid shift times.');return 'invalid'}
+  const{error}=id?await sb.from('shifts').update(p).eq('id',id):await sb.from('shifts').insert(p);
+  if(error){alert('Could not save the shift: '+error.message);return 'error'}
   await loadAll();return 'ok'}
 
 // ---- slide to start / end ----
@@ -329,8 +336,12 @@ function renderActive(){
 
 // ---- actions ----
 function leftAction(){view==='shifts'?openSheet():logSick()}
-function openSheet(){document.getElementById('sheet').classList.add('open')}
-function closeSheet(){document.getElementById('sheet').classList.remove('open')}
+function editShift(id){const s=shifts.find(x=>x.id===id);if(!s||s.kind==='sick')return;editId=id;
+  document.getElementById('sheet-title').innerText='Edit shift';
+  document.getElementById('i-date').value=isoDisp(s.date);document.getElementById('i-start').value=s.start;document.getElementById('i-end').value=s.end;
+  document.getElementById('i-notes').value=s.notes==='Live shift timer'?'':s.notes;document.getElementById('sheet').classList.add('open')}
+function openSheet(){editId=null;document.getElementById('sheet-title').innerText='Add shift';['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='');const d=(selDay&&selDay.startsWith(month))?selDay:localDate(new Date());document.getElementById('i-date').value=isoDisp(d);document.getElementById('sheet').classList.add('open')}
+function closeSheet(){editId=null;document.getElementById('sheet').classList.remove('open')}
 async function logSick(){
   if(IS_VIEWER||busy)return;
   const today=new Date(),day=today.getDay();
@@ -348,7 +359,7 @@ async function saveManual(){
   if(!d){alert('Date must look like 10.11.2026.');return}
   if(!s||!e){alert('Start and end must look like 15:30 (24-hour).');return}
   busy=true;try{
-    if(await addShift(d,s,e,document.getElementById('i-notes').value)==='ok'){
+    if(await addShift(d,s,e,document.getElementById('i-notes').value,editId)==='ok'){
       closeSheet();['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='');selDay=d;month=d.slice(0,7);renderAll()}
   }finally{busy=false}}
 async function deleteShift(id){
@@ -446,7 +457,7 @@ function renderShifts(){
   dc+=dl.length?dl.map(s=>`<div class="dshift"><div class="tm">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</div><div class="sub">${fmtH(s.hours)} h</div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${tagsHtml(tagsOf(s))}</div>
     ${s.notes&&s.kind!=='sick'?`<div class="sub" style="margin-top:12px">Note</div><div style="font-size:14px;font-weight:600;margin-top:2px">${esc(s.notes)}</div>`:''}
     <div class="sub" style="margin-top:12px">Premium</div><div style="font-size:14px;font-weight:700;margin-top:2px">+${fmtEur(s.extra)}</div>
-    ${IS_VIEWER?'':`<button class="link red" style="margin-top:10px" onclick="deleteShift('${esc(s.id)}')">Delete</button>`}</div>`).join(''):`<div class="dshift sub">No shift on this day.</div>`;
+    ${IS_VIEWER?'':`<div style="display:flex;gap:16px;margin-top:10px">${s.kind==='sick'?'':`<button class="link" onclick="editShift('${esc(s.id)}')">Edit</button>`}<button class="link red" onclick="deleteShift('${esc(s.id)}')">Delete</button></div>`}</div>`).join(''):`<div class="dshift sub">No shift on this day.</div>`;
   document.getElementById('daycard').innerHTML=dc;
   document.getElementById('monthcard').innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:6px">${new Date(y,mo-1).toLocaleString('en-GB',{month:'long'})}</div><div class="kv"><span>Shifts</span><b>${T.ms.length}</b></div><div class="kv"><span>Hours</span><b>${fmtH(T.hours)} h</b></div><div class="kv"><span>Premiums</span><b>+${fmtEur(T.premTotal)}</b></div>`;
   document.getElementById('shifts-list').innerHTML=T.ms.length?T.ms.map(s=>shiftRow(s)).join(''):'<div class="glass card" style="text-align:center;color:var(--muted)">No shifts this month.</div>'}
@@ -501,7 +512,7 @@ function reportPdf(){
     yy+=2.5;doc.setDrawColor(...LINE);doc.setLineWidth(.2);doc.line(L,yy,R,yy);yy+=5.5});
   if(!T.ms.length){doc.setFont('helvetica','normal');col(MUT);doc.text('No shifts this month.',L,yy)}
   // bottom block
-  yy=Math.max(yy+8,200);if(yy>250){doc.addPage();yy=20}
+  yy=yy+14;if(yy>235){doc.addPage();yy=20}
   doc.setFont('helvetica','bold');doc.setFontSize(10);col(INK);doc.text('Salary breakdown',L,yy);
   const rows=[['Guaranteed base (80 h)',fmtEur(BASE_SALARY)],['Overtime',fmtEur(T.ot)],['Evening +15 %',fmtEur(T.prem.eve)],['Night +40 %',fmtEur(T.prem.night)],['Saturday +20 %',fmtEur(T.prem.sat)],['Sunday / holiday +100 %',fmtEur(T.prem.sun)]];
   let ry=yy+7;doc.setFontSize(8.5);
@@ -543,6 +554,7 @@ async function startApp(){
   await Promise.all([loadAll(),loadActive(),loadCal()])}
 async function boot(){
   [['i-date','date'],['i-start','time'],['i-end','time']].forEach(([id,k])=>document.getElementById(id).addEventListener('input',e=>e.target.value=digits(e.target.value,k)));
+  document.getElementById('i-date').addEventListener('blur',e=>{const d=parseDate(e.target.value);if(d)e.target.value=isoDisp(d)});
   document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
   initSlider();
   if(IS_VIEWER){document.body.classList.remove('locked');setRole();await loadAll();loadCal();setInterval(loadAll,60000)}

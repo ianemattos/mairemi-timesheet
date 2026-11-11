@@ -8,212 +8,213 @@
 <title>Mairemi Care Timesheet</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
-:root{
-  --sand:#F4EFE6; --sand-2:#EAE3D5;
-  --sage:#7C9A86; --sage-d:#4E6E5A; --sage-bg:rgba(124,154,134,.16);
-  --text:#26342C; --muted:#6B7A70; --light:#9AA79E;
-  --card:rgba(255,255,255,.62); --card-b:rgba(255,255,255,.75);
-  --line:rgba(38,52,44,.10);
-  --day:#3B7DD8; --day-bg:rgba(59,125,216,.13);
-  --eve:#D98A1C; --eve-bg:rgba(217,138,28,.15);
-  --night:#34456B; --night-bg:rgba(52,69,107,.12);
-  --wknd:#C9607A; --wknd-bg:rgba(201,96,122,.14);
-  --sick:#2A9D8F; --sick-bg:rgba(42,157,143,.14);
-  --danger:#C4503F;
-}
-*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
-body{background:var(--sand);color:var(--text);min-height:100vh;padding-bottom:calc(84px + env(safe-area-inset-bottom));
-  background-image:radial-gradient(at 0% 0%,rgba(124,154,134,.30) 0,transparent 55%),radial-gradient(at 100% 100%,rgba(222,200,160,.45) 0,transparent 55%);background-attachment:fixed}
-.glass{background:var(--card);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--card-b);border-radius:22px;padding:20px;box-shadow:0 10px 30px -8px rgba(38,52,44,.10)}
-.wrap{max-width:560px;margin:0 auto;padding:14px 14px 0;display:flex;flex-direction:column;gap:14px}
-@media(min-width:900px){.wrap{max-width:980px}}
-header.top{position:sticky;top:0;z-index:50;background:rgba(244,239,230,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
-.top-in{max-width:980px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.brand{font-weight:800;letter-spacing:-.4px;font-size:1.05rem}
-.brand small{color:var(--sage-d);font-weight:700;margin-left:6px}
-select.month{background:rgba(255,255,255,.8);border:1px solid var(--line);border-radius:11px;padding:7px 10px;font-weight:700;font-size:.9rem;color:var(--text)}
-.link-btn{background:none;border:none;color:var(--sage-d);font-weight:700;font-size:.85rem;cursor:pointer}
-.title{font-size:1.05rem;font-weight:800;letter-spacing:-.2px}
-.sub{font-size:.8rem;color:var(--muted)}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+:root{--ink:#1E2A24;--muted:#5B6A62;--acc:#2F6B57;--line:rgba(60,90,140,.14);--glass:rgba(255,255,255,.58);--glass-b:rgba(255,255,255,.8);--shadow:0 10px 30px rgba(35,70,140,.12),inset 0 1px 0 rgba(255,255,255,.9)}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:linear-gradient(160deg,#EEF2E8,#F4EFE3 55%,#E9F0E6);background-attachment:fixed;color:var(--ink);min-height:100vh;overflow-x:hidden}
+.blob{position:fixed;border-radius:50%;filter:blur(60px);pointer-events:none;z-index:0}
+.b1{width:420px;height:420px;background:#B9D4A8;opacity:.6;left:-120px;top:-80px}
+.b2{width:380px;height:380px;background:#F0D9A8;opacity:.55;right:-100px;top:180px}
+.b3{width:360px;height:360px;background:#9CCBB5;opacity:.5;left:20%;bottom:-120px}
+.glass{background:var(--glass);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid var(--glass-b);box-shadow:var(--shadow);border-radius:22px}
 .hidden{display:none!important}
-/* tab bar */
-nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:60;background:rgba(255,255,255,.82);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:center}
-.tabs-in{display:flex;gap:4px;width:100%;max-width:560px}
-.tab{flex:1;border:none;background:none;padding:8px 4px;border-radius:14px;font-weight:700;font-size:.78rem;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
-.tab.active{background:var(--sage-bg);color:var(--sage-d)}
-.tab .ico{font-size:1.15rem;line-height:1}
-.tab .soon{font-size:.6rem;font-weight:700;background:var(--sand-2);color:var(--muted);border-radius:8px;padding:1px 6px}
-/* ring */
-.ring{position:relative;width:170px;height:170px;margin:4px auto 10px}
-.ring svg{transform:rotate(-90deg)}
-.ring .bg{fill:none;stroke:var(--sage-bg);stroke-width:12}
-.ring .fg{fill:none;stroke:var(--sage-d);stroke-width:12;stroke-linecap:round;stroke-dasharray:440;stroke-dashoffset:440;transition:stroke-dashoffset .6s ease}
-.ring .txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.ring .v{font-size:2.1rem;font-weight:800;letter-spacing:-1px}
-.ring .l{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.pay{text-align:center;padding-top:14px;border-top:1px solid var(--line);margin-top:10px}
-.pay .amt{font-size:2.4rem;font-weight:800;letter-spacing:-1px;color:var(--sage-d)}
-.chip{display:inline-block;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:20px}
-.chip.paid{background:var(--sick-bg);color:var(--sick)}
-.chip.open{background:var(--eve-bg);color:var(--eve)}
-.brk{display:flex;flex-direction:column;gap:6px;margin-top:14px}
-.brk div{display:flex;justify-content:space-between;padding:9px 12px;background:rgba(255,255,255,.55);border-radius:12px;font-size:.86rem}
-.brk span:first-child{color:var(--muted);font-weight:600}.brk span:last-child{font-weight:700}
-.btn{border:none;border-radius:14px;padding:13px 16px;font-weight:700;font-size:.95rem;cursor:pointer;background:var(--sage-d);color:#fff;width:100%}
-.btn.ghost{background:rgba(255,255,255,.7);color:var(--text);border:1px solid var(--line)}
-.btn.small{width:auto;padding:8px 14px;font-size:.82rem;border-radius:11px}
-.btn:disabled{opacity:.5}
-/* slider */
-.slider{position:relative;height:58px;border-radius:30px;background:var(--sage-bg);overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
-.slider.end{background:rgba(196,80,63,.14)}
-.slider .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--sage-d);padding-left:40px;pointer-events:none}
-.slider.end .lbl{color:var(--danger)}
-.slider .knob{position:absolute;top:5px;left:5px;width:48px;height:48px;border-radius:50%;background:var(--sage-d);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 4px 10px rgba(38,52,44,.25);cursor:grab}
-.slider.end .knob{background:var(--danger)}
-.live{background:var(--sick-bg);color:var(--sick);border-radius:14px;padding:11px;text-align:center;font-weight:700;font-size:.88rem}
-/* shifts */
-.shift{display:flex;justify-content:space-between;gap:10px;padding:14px 4px;border-bottom:1px solid var(--line)}
-.shift:last-child{border-bottom:none}
-.shift .d{font-weight:700}.shift .t{font-size:.82rem;color:var(--muted);margin-top:2px}
-.shift .r{text-align:right}.shift .h{font-weight:800}.shift .b{font-size:.8rem;font-weight:700;color:var(--sage-d)}
-.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
-.tag{font-size:.66rem;font-weight:700;padding:3px 9px;border-radius:20px}
-.tag-Day{background:var(--day-bg);color:var(--day)}.tag-Eve{background:var(--eve-bg);color:var(--eve)}
-.tag-Night{background:var(--night-bg);color:var(--night)}.tag-Wknd{background:var(--wknd-bg);color:var(--wknd)}
-.tag-Sick{background:var(--sick-bg);color:var(--sick)}
-.del{background:none;border:none;color:var(--danger);font-size:.74rem;font-weight:600;text-decoration:underline;cursor:pointer;margin-top:4px}
-.form{display:none;flex-direction:column;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.form.open{display:flex}
-.field{display:flex;flex-direction:column;gap:4px}.field label{font-size:.78rem;font-weight:700;color:var(--muted)}
-.field input{padding:11px 13px;border:1px solid var(--line);border-radius:12px;font-size:1rem;background:rgba(255,255,255,.9);color:var(--text)}
-.hint{font-size:.74rem;color:var(--muted)}
-/* pay to */
-.copyrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
-.copyrow:last-child{border-bottom:none}.copyrow .k{font-size:.74rem;color:var(--muted);font-weight:700}.copyrow .val{font-weight:700;word-break:break-all}
-.empty{text-align:center;color:var(--muted);padding:26px 8px;font-size:.9rem}
-#login{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;padding:20px;background:var(--sand)}
+#app{position:relative;z-index:1;display:flex;min-height:100vh}
+#side{display:none;width:190px;flex:none;margin:12px;padding:20px 12px;flex-direction:column;gap:4px;height:calc(100vh - 24px);position:sticky;top:12px}
+.brand{font-size:17px;font-weight:700;letter-spacing:-.3px;padding:0 10px 18px}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:12px;font-size:14px;font-weight:600;color:var(--ink);background:transparent;border:none;cursor:pointer;text-align:left;width:100%}
+.nav.on{background:rgba(255,255,255,.85);box-shadow:0 1px 4px rgba(0,0,0,.10);color:var(--acc)}
+.soon{font-size:10px;font-weight:700;color:var(--muted)}
+main{flex:1;min-width:0;padding:0 16px 130px}
+#pills{display:flex;gap:4px;padding:4px;border-radius:999px;margin:0 0 6px}
+#pills .nav{justify-content:center;border-radius:999px;font-size:13px;padding:8px 4px}
+.hdr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:calc(22px + env(safe-area-inset-top)) 4px 14px}
+.hdr h1{font-size:19px;font-weight:700;letter-spacing:-.4px}
+.sub{font-size:13px;color:var(--muted);margin-top:2px}
+.hdr-r{display:flex;gap:8px;align-items:center}
+.pill{background:var(--glass);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--glass-b);box-shadow:var(--shadow);border-radius:999px;padding:3px;display:flex;font-size:12px;font-weight:600}
+select.msel{appearance:none;-webkit-appearance:none;background:#fff;border:none;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.pill-btn{height:38px;padding:0 16px;border-radius:19px;color:var(--acc);font-weight:600;font-size:13px;background:var(--glass);border:1px solid var(--glass-b);box-shadow:var(--shadow);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.who{height:38px;padding:0 14px 0 5px;border-radius:19px;display:flex;align-items:center;gap:8px;background:var(--glass);border:1px solid var(--glass-b);box-shadow:var(--shadow)}
+.who .nm{font-size:13px;font-weight:600}
+.av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#2F6B57,#6FAA8C);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+.card{padding:16px 18px;border-radius:22px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.lbl{font-size:12px;font-weight:600;color:var(--muted)}
+.big{font-size:26px;font-weight:700;letter-spacing:-.6px;margin-top:4px;font-variant-numeric:tabular-nums}
+.tab-n{font-variant-numeric:tabular-nums}
+.stats4{display:none;gap:12px}.stats4 .glass{flex:1;padding:16px}
+.hero{margin:0;background:linear-gradient(135deg,rgba(47,107,87,.94),rgba(111,170,140,.92));color:#fff;border-radius:28px;padding:20px;box-shadow:0 14px 34px rgba(47,107,87,.30),inset 0 1px 0 rgba(255,255,255,.35)}
+.hero .amt{font-size:42px;font-weight:700;letter-spacing:-1.2px;margin-top:4px;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:rgba(255,255,255,.3);margin-top:16px;overflow:hidden}.bar i{display:block;height:100%;background:#fff;border-radius:3px}
+.mini3{display:flex;gap:10px;margin-top:12px}.mini3 .glass{flex:1;border-radius:20px;padding:12px 14px}
+.mini3 .v{font-size:17px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+.sec{display:flex;justify-content:space-between;align-items:baseline;padding:20px 8px 10px}.sec b{font-size:15px}.sec span{font-size:13px;color:var(--muted)}
+.rows{display:flex;flex-direction:column;gap:8px}
+.row{display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;border-radius:22px;cursor:pointer}
+.dchip{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none}
+.dchip b{font-size:17px;line-height:1}.dchip span{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.row .t{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}.row .tg{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.row .r{text-align:right;margin-left:auto}.row .r b{font-size:16px}.row .r div{font-size:12px;font-weight:600;color:var(--acc);margin-top:2px}
+.tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.tag-Day{background:rgba(40,130,210,.24);color:#0F4C85}.tag-Eve{background:rgba(255,149,0,.18);color:#8A4B00}
+.tag-Night{background:rgba(40,56,110,.30);color:#1A2656}.tag-Wknd{background:rgba(200,50,100,.20);color:#9A1F4C}
+.tag-Sick{background:rgba(30,150,140,.22);color:#0F5F58}
+.chip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.chip.open{background:rgba(255,149,0,.22);color:#8A4B00}.chip.ok{background:rgba(47,107,87,.16);color:var(--acc)}.chip.soon{background:rgba(255,255,255,.7);color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:10px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+td{padding:11px 10px;border-top:1px solid var(--line)}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:5px 0}.kv span{color:var(--muted)}.kv b{font-weight:600}
+.bottom2{display:none;gap:12px}
+.chk{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:14px;font-weight:600;background:none;border:none;cursor:pointer;color:var(--ink)}
+.chk i{width:24px;height:24px;border:2px solid var(--acc);border-radius:8px;background:rgba(255,255,255,.7);display:block;flex:none}
+.pbtn{border:1.5px solid var(--acc);color:var(--acc);background:rgba(255,255,255,.7);font-size:12px;font-weight:700;padding:6px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.copy{font-size:12px;font-weight:700;color:var(--acc);background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);padding:5px 12px;border-radius:999px;cursor:pointer}
+.link{background:none;border:none;color:var(--acc);font-weight:700;font-size:12px;cursor:pointer}
+.link.red{color:#B3463A}
+.mrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.mrow .n{flex:1;min-width:0}.mrow .n b{font-size:14px}.mrow .n div{font-size:12px;color:var(--muted);margin-top:1px}
+.mrow .a{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}.mrow .s{min-width:112px;text-align:right}
+.mhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}.mhead b{font-size:16px}.mhead .tot{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.paygrid{display:flex;flex-direction:column;gap:12px}
+.copyr{border-top:1px solid var(--line);padding:10px 0;display:flex;align-items:center;gap:8px}.copyr .k{font-size:11px;font-weight:600;color:var(--muted)}.copyr .v{font-size:13px;font-weight:700;margin-top:2px;word-break:break-all}
+/* calendar */
+.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal-hd{margin-bottom:6px}
+.cal-hd div{font-size:10px;font-weight:700;color:var(--muted);text-align:center}
+.cd{background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.7);border-radius:10px;padding:4px;min-height:44px;cursor:pointer;text-align:left}
+.cd.out{cursor:default}.cd.out .dn{color:rgba(70,86,109,.45);font-weight:500}
+.cd .dn{font-size:11px;font-weight:500}.cd.has .dn{font-weight:700}
+.cd.today,.cd.sel{background:rgba(255,255,255,.85);border:2px solid var(--acc)}
+.hp{margin-top:3px;font-size:10px;font-weight:700;padding:1px 0;border-radius:7px;text-align:center}
+.hp-Day{background:rgba(40,130,210,.24);color:#0F4C85}.hp-Eve{background:rgba(255,149,0,.22);color:#8A4B00}.hp-Night{background:rgba(40,56,110,.30);color:#1A2656}.hp-Wknd{background:rgba(200,50,100,.20);color:#9A1F4C}.hp-Sick{background:rgba(30,150,140,.22);color:#0F5F58}
+.calwrap{display:flex;flex-direction:column;gap:12px}
+.daycard .d1{font-size:12px;font-weight:600;color:var(--muted)}.daycard .d2{font-size:20px;font-weight:700;letter-spacing:-.4px;margin-top:1px}
+.dshift{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}.dshift .tm{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+/* action bar + slider */
+#actions{position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:60;display:flex;gap:10px;padding:10px;border-radius:34px;max-width:460px;margin:0 auto}
+.abtn{flex:1;height:54px;border-radius:27px;border:1px solid rgba(255,255,255,.9);background:rgba(255,255,255,.65);color:var(--ink);font-weight:600;font-size:15px;cursor:pointer}
+.slider{flex:2;height:54px;border-radius:27px;background:#1E2A24;position:relative;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.88);font-weight:600;font-size:14px;padding-left:44px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.slider.end{background:#7A2E26}
+.slider .knob{position:absolute;left:5px;top:5px;width:44px;height:44px;border-radius:50%;background:#fff;color:#1E2A24;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:grab}
+.slider .ar{opacity:.5;margin-left:6px;letter-spacing:2px}
+#live{margin-bottom:12px;padding:11px;text-align:center;font-weight:700;font-size:13px;color:var(--acc);border-radius:16px}
+/* sheet + login */
+.overlay{position:fixed;inset:0;z-index:150;background:rgba(30,42,36,.25);display:none;align-items:flex-end;justify-content:center;padding:14px}
+.overlay.open{display:flex}.sheet{width:100%;max-width:440px;padding:20px;display:flex;flex-direction:column;gap:12px;background:rgba(255,255,255,.85)}
+.field{display:flex;flex-direction:column;gap:4px}.field label{font-size:12px;font-weight:700;color:var(--muted)}
+.field input{padding:12px 14px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:rgba(255,255,255,.9);color:var(--ink)}
+.btn{border:none;border-radius:14px;padding:14px;font-weight:700;font-size:15px;cursor:pointer;background:#1E2A24;color:#fff;width:100%}
+.btn.ghost{background:rgba(255,255,255,.7);color:var(--ink);border:1px solid var(--line)}
+.hint{font-size:12px;color:var(--muted)}
+#login{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;padding:20px}
 body.needs-login #login{display:flex}
-body.locked header.top,body.locked .wrap,body.locked nav.tabs{display:none!important}
-#err{color:var(--danger);font-size:.85rem;font-weight:600;min-height:1em}
-#sync{display:none;background:var(--eve-bg);color:var(--eve);border-radius:12px;padding:10px;text-align:center;font-weight:700;font-size:.85rem}
-#cal{margin-top:14px}
-.cal-h,.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
-.cal-h div{font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;padding-bottom:4px}
-.cal-d{aspect-ratio:1;border-radius:12px;background:rgba(255,255,255,.5);border:1px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.85rem;font-weight:700;cursor:pointer;padding:0;color:var(--text)}
-.cal-d.empty{background:none;cursor:default}
-.cal-d.today{border-color:var(--sage-d)}
-.cal-d.sel{background:var(--sage-d);color:#fff}
-.cal-dots{display:flex;gap:2px;height:6px}
-.cal-dots i{width:6px;height:6px;border-radius:50%;display:block}
-.dot-Day{background:var(--day)}.dot-Eve{background:var(--eve)}.dot-Night{background:var(--night)}.dot-Wknd{background:var(--wknd)}.dot-Sick{background:var(--sick)}
-.cal-d.sel .cal-dots i{box-shadow:0 0 0 1px #fff}
-.filter{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:.82rem;font-weight:700;color:var(--sage-d)}
-@media(min-width:900px){.grid2{display:grid;grid-template-columns:360px 1fr;gap:14px;align-items:start}}
+body.locked #app,body.locked #actions{display:none!important}
+#err{color:#B3463A;font-size:13px;font-weight:600;min-height:1em}
+#syncmsg{display:none;margin:0 4px 10px;padding:10px;border-radius:12px;background:rgba(255,149,0,.2);color:#8A4B00;text-align:center;font-weight:700;font-size:13px}
+@media(max-width:899px){.desk{display:none!important}}
+@media(min-width:900px){
+  #side{display:flex}#pills{display:none}.mob{display:none!important}
+  main{padding:0 24px 130px 8px}
+  .hdr{padding-top:22px}.hdr h1{font-size:24px;letter-spacing:-.5px}
+  .stats4{display:flex}.bottom2{display:flex}
+  .cd{border-radius:14px;padding:7px 8px;min-height:62px}.cd .dn{font-size:12px}.hp{font-size:11px;padding:3px 0;margin-top:5px}.calg{gap:6px}.cal-hd div{font-size:11px;letter-spacing:.6px;text-transform:uppercase}
+  .calwrap{flex-direction:row;align-items:flex-start}.calwrap>.calmain{flex:1;min-width:0}.calwrap>.calside{width:250px;flex:none;display:flex;flex-direction:column;gap:12px}
+  .paygrid{flex-direction:row;align-items:flex-start}.paygrid>.left{flex:1;min-width:0}.paygrid>.right{width:270px;flex:none}
+  #actions{margin-left:calc(50% - 230px + 101px);margin-right:auto;left:0;right:auto;width:460px}
+}
 </style>
 </head>
 <body class="locked">
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
 
-<div id="login"><div class="glass" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:12px">
-  <div class="title">Mairemi Care</div>
+<div id="login"><div class="glass sheet" style="max-width:380px">
+  <div style="font-size:19px;font-weight:700">Mairemi Care</div>
   <div class="field"><label>Email</label><input type="email" id="le" autocomplete="username"></div>
   <div class="field"><label>Password</label><input type="password" id="lp" autocomplete="current-password"></div>
-  <div id="err"></div>
-  <button class="btn" onclick="doLogin()">Log in</button>
+  <div id="err"></div><button class="btn" onclick="doLogin()">Log in</button>
 </div></div>
 
-<header class="top"><div class="top-in">
-  <div class="brand">Mairemi Care<small id="role-lbl"></small></div>
-  <div class="row" style="gap:8px">
-    <select id="month" class="month" onchange="onMonth(this.value)"></select>
-    <button class="link-btn" id="logout" onclick="logout()">Log out</button>
-  </div>
-</div></header>
-
-<main class="wrap">
-  <div id="sync"></div>
-
-  <!-- OVERVIEW -->
-  <section id="v-overview" class="view">
-    <div class="grid2">
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <div id="live" class="live hidden"></div>
-        <div id="slide-card" class="glass hidden"><div id="slider" class="slider"><div class="lbl" id="slider-lbl">Slide to start shift</div><div class="knob" id="knob">&#10095;</div></div></div>
-        <div class="glass">
-          <div class="ring"><svg width="170" height="170"><circle class="bg" cx="85" cy="85" r="70"/><circle class="fg" id="ring" cx="85" cy="85" r="70"/></svg>
-            <div class="txt"><div class="v" id="hours">0,0h</div><div class="l">of 80h</div></div></div>
-          <div class="pay"><div class="amt" id="total">1 240,00 €</div><div class="sub">Salary this month</div><div style="margin-top:8px" id="paidchip"></div></div>
-        </div>
-      </div>
-      <div class="glass" style="margin-top:14px">
-        <div class="title">Breakdown</div>
-        <div class="brk">
-          <div><span>Base salary</span><span id="b-base">1 240,00 €</span></div>
-          <div><span>Overtime (over 80h)</span><span id="b-ot">0,00 €</span></div>
-          <div><span>Evening +15 %</span><span id="b-eve">0,00 €</span></div>
-          <div><span>Night +40 %</span><span id="b-night">0,00 €</span></div>
-          <div><span>Saturday +20 %</span><span id="b-sat">0,00 €</span></div>
-          <div><span>Sunday / holiday +100 %</span><span id="b-sun">0,00 €</span></div>
-        </div>
-      </div>
+<div id="app">
+  <aside id="side" class="glass">
+    <div class="brand">Mairemi Care</div>
+    <button class="nav on" data-v="overview" onclick="showView('overview')">Overview</button>
+    <button class="nav" data-v="shifts" onclick="showView('shifts')">Shifts</button>
+    <button class="nav" data-v="receipts" onclick="showView('receipts')">Receipts<span class="soon">SOON</span></button>
+    <button class="nav" data-v="payments" onclick="showView('payments')">Payments</button>
+  </aside>
+  <main>
+    <div id="pills" class="glass" style="margin-top:calc(12px + env(safe-area-inset-top))">
+      <button class="nav on" data-v="overview" onclick="showView('overview')">Overview</button>
+      <button class="nav" data-v="shifts" onclick="showView('shifts')">Shifts</button>
+      <button class="nav" data-v="payments" onclick="showView('payments')">Payments</button>
+      <button class="nav" data-v="receipts" onclick="showView('receipts')">Receipts</button>
     </div>
-  </section>
+    <div id="syncmsg"></div>
 
-  <!-- SHIFTS -->
-  <section id="v-shifts" class="view hidden">
-    <div class="glass">
-      <div class="row"><div><div class="title">Shifts</div><div class="sub" id="count">0 shifts</div></div>
-        <button class="link-btn iane-only" onclick="document.getElementById('form').classList.toggle('open')">+ Add shift</button></div>
-      <div class="form iane-only" id="form">
-        <div class="field"><label>Date</label><input id="i-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10" autocomplete="off"></div>
-        <div style="display:flex;gap:10px">
-          <div class="field" style="flex:1"><label>Start</label><input id="i-start" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div>
-          <div class="field" style="flex:1"><label>End</label><input id="i-end" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div>
-        </div>
-        <div class="hint">Start rounds down and end rounds up to 15 min.</div>
-        <div class="field"><label>Notes</label><input id="i-notes" placeholder="Optional"></div>
-        <button class="btn" onclick="saveManual()">Save shift</button>
-        <button class="btn ghost" onclick="logSick()">Log sick day today</button>
+    <!-- OVERVIEW -->
+    <section id="v-overview" class="view">
+      <div class="hdr"><div><h1 class="mtitle">Overview</h1><div class="sub desk" id="ov-sub"></div></div>
+        <div class="hdr-r"><div class="pill"><select class="msel" onchange="onMonth(this.value)"></select></div><button class="pill-btn desk" onclick="reportPdf()">Export PDF</button><div class="who desk"><span class="av who-av"></span><span class="nm who-nm"></span></div></div></div>
+      <div id="live" class="glass hidden"></div>
+      <div class="stats4" id="stats4"></div>
+      <div class="mob">
+        <div class="hero"><div style="font-size:13px;font-weight:500;opacity:.92">Pay this month</div><div class="amt" id="h-amt"></div><div class="bar"><i id="h-bar"></i></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:500;margin-top:8px"><span id="h-w"></span><span>80 h contract</span></div></div>
+        <div class="mini3" id="mini3"></div>
+        <div class="sec"><b>Shifts</b><span id="ov-count"></span></div>
+        <div class="rows" id="ov-rows"></div>
+        <button class="pill-btn" style="margin:14px auto 0;display:flex" onclick="reportPdf()">Export PDF</button>
       </div>
-      <div id="cal"></div><div id="filter" class="filter hidden"></div><div id="list" style="margin-top:8px"></div>
-    </div>
-  </section>
+      <div class="glass card desk" style="margin-top:12px"><div style="font-size:15px;font-weight:700;padding-bottom:8px">Shift ledger</div>
+        <table><thead><tr><th>Date</th><th>Time</th><th>Hours</th><th>Tags</th><th style="text-align:right">Bonus</th></tr></thead><tbody id="ledger"></tbody></table></div>
+      <div class="bottom2 desk" style="margin-top:12px"><div class="glass card" style="flex:1"><div style="font-size:13px;font-weight:700;margin-bottom:4px">Premiums</div><div id="prem"></div></div>
+        <div class="glass card" style="width:240px" id="paycard"></div></div>
+    </section>
 
-  <!-- PAYMENTS -->
-  <section id="v-payments" class="view hidden">
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="glass">
-        <div class="row"><div class="title" id="pay-title">Payment</div><span id="pay-chip"></span></div>
-        <div class="pay" style="border:none;padding-top:8px"><div class="amt" id="pay-amt">0,00 €</div><div class="sub">Salary</div></div>
-        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
-          <button class="btn" id="mark-btn" onclick="markPaid()">Mark salary as paid</button>
-          <button class="btn ghost iane-only hidden" id="undo-btn" onclick="undoPaid()">Undo paid</button>
-        </div>
-        <div class="row" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><div><div style="font-weight:700">Receipts</div></div><span class="tag" style="background:var(--sand-2);color:var(--muted)">Soon</span></div>
-      </div>
-      <div class="glass">
-        <div class="row"><div class="title">Pay to</div><button class="link-btn iane-only" onclick="document.getElementById('pd-form').classList.toggle('open')">Edit</button></div>
-        <div id="pd-rows"></div>
-        <div class="form iane-only" id="pd-form">
-          <div class="field"><label>Name</label><input id="pd-name"></div>
-          <div class="field"><label>IBAN</label><input id="pd-iban"></div>
-          <div class="field"><label>MobilePay number</label><input id="pd-mp" inputmode="tel"></div>
-          <button class="btn" onclick="savePD()">Save</button>
-        </div>
-      </div>
-    </div>
-  </section>
+    <!-- SHIFTS -->
+    <section id="v-shifts" class="view hidden">
+      <div class="hdr"><div style="display:flex;align-items:center;gap:12px"><h1 class="mtitle">Shifts</h1>
+        <div class="pill"><span class="seg on" id="seg-cal" onclick="setMode('cal')">Calendar</span><span class="seg" id="seg-list" onclick="setMode('list')">List</span></div></div>
+        <div class="hdr-r"><div class="pill"><select class="msel" onchange="onMonth(this.value)"></select></div>
+          <a class="pill-btn desk" id="cal-open" href="#">Add to my calendar</a><div class="who desk"><span class="av who-av"></span><span class="nm who-nm"></span></div></div></div>
+      <div id="shifts-cal" class="calwrap"><div class="calmain glass card" style="padding:12px 14px"><div class="calg cal-hd" id="cal-hd"></div><div class="calg" id="calg"></div></div>
+        <div class="calside"><div class="glass card daycard" id="daycard"></div><div class="glass card" id="monthcard"></div></div></div>
+      <div id="shifts-list" class="rows hidden"></div>
+      <div style="text-align:center;margin-top:14px"><button class="link" id="cal-copy" onclick="copyCal(this)">Copy calendar link (Google Calendar)</button></div>
+    </section>
 
-  <!-- RECEIPTS -->
-  <section id="v-receipts" class="view hidden"><div class="glass empty"><div class="title">Receipts</div><div style="margin-top:8px">Coming soon.</div></div></section>
-</main>
+    <!-- PAYMENTS -->
+    <section id="v-payments" class="view hidden">
+      <div class="hdr"><div><h1>Payments</h1><div class="sub">Everything to pay, by month.</div></div><div class="who desk"><span class="av who-av"></span><span class="nm who-nm"></span></div></div>
+      <div class="paygrid"><div class="left stack" id="pay-months"></div>
+        <div class="right glass card"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">Pay to</div><button class="link iane-only" onclick="document.getElementById('pd-form').classList.toggle('hidden')">Edit</button></div>
+          <div class="sub" style="margin:2px 0 8px;font-size:12px">Tap Copy to use it in your banking app.</div><div id="pd-rows"></div>
+          <div id="pd-form" class="hidden" style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+            <div class="field"><label>Name</label><input id="pd-name"></div><div class="field"><label>IBAN</label><input id="pd-iban"></div>
+            <div class="field"><label>MobilePay number</label><input id="pd-mp" inputmode="tel"></div><button class="btn" onclick="savePD()">Save</button></div></div></div>
+    </section>
 
-<nav class="tabs"><div class="tabs-in">
-  <button class="tab active" data-v="overview" onclick="showView('overview')"><span class="ico">&#9680;</span>Overview</button>
-  <button class="tab" data-v="shifts" onclick="showView('shifts')"><span class="ico">&#9776;</span>Shifts</button>
-  <button class="tab" data-v="payments" onclick="showView('payments')"><span class="ico">&#8364;</span>Payments</button>
-  <button class="tab" data-v="receipts" onclick="showView('receipts')"><span class="ico">&#9783;</span>Receipts<span class="soon">Soon</span></button>
-</div></nav>
+    <section id="v-receipts" class="view hidden"><div class="hdr"><div><h1>Receipts</h1><div class="sub">Coming soon.</div></div></div>
+      <div class="glass card" style="text-align:center;color:var(--muted);padding:40px 20px">Receipts will be logged and paid by MobilePay here.</div></section>
+  </main>
+</div>
+
+<div id="actions" class="glass hidden">
+  <button class="abtn" id="act-left" onclick="leftAction()">Sick day</button>
+  <div class="slider" id="slider"><div class="knob" id="knob"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div><span id="slider-lbl">Slide to start</span><span class="ar">&#8250;&#8250;&#8250;</span></div>
+</div>
+
+<div class="overlay" id="sheet" onclick="if(event.target===this)closeSheet()"><div class="glass sheet">
+  <div style="font-size:17px;font-weight:700">Add shift</div>
+  <div class="field"><label>Date</label><input id="i-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10" autocomplete="off"></div>
+  <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Start</label><input id="i-start" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div>
+    <div class="field" style="flex:1"><label>End</label><input id="i-end" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div></div>
+  <div class="hint">Start rounds down and end rounds up to 15 min.</div>
+  <div class="field"><label>Notes</label><input id="i-notes" placeholder="Optional"></div>
+  <button class="btn" onclick="saveManual()">Save shift</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>
+</div></div>
+<style>.seg{padding:5px 12px;border-radius:999px;color:var(--muted);cursor:pointer}.seg.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}.iane-hide{display:none!important}</style>
 
 <script>
 const SUPABASE_URL='https://rrvvnohfbwdhuejppacx.supabase.co';
@@ -222,7 +223,7 @@ const TOKEN=new URLSearchParams(location.search).get('v');
 const IS_VIEWER=!!TOKEN;
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:!IS_VIEWER,autoRefreshToken:!IS_VIEWER}});
 
-const BASE_RATE=15.50,TARGET=80,BASE_SALARY=1240,CIRC=440;
+const BASE_RATE=15.50,TARGET=80,BASE_SALARY=1240;
 const FI_HOLIDAYS=["2025-01-01","2025-01-06","2025-04-18","2025-04-20","2025-04-21","2025-05-01","2025-05-29","2025-06-08","2025-06-20","2025-06-21","2025-11-01","2025-12-06","2025-12-24","2025-12-25","2025-12-26","2026-01-01","2026-01-06","2026-04-03","2026-04-05","2026-04-06","2026-05-01","2026-05-14","2026-05-24","2026-06-19","2026-06-20","2026-10-31","2026-12-06","2026-12-24","2026-12-25","2026-12-26","2027-01-01","2027-01-06","2027-03-26","2027-03-28","2027-03-29","2027-05-01","2027-05-06","2027-05-16","2027-06-25","2027-06-26","2027-11-06","2027-12-06","2027-12-24","2027-12-25","2027-12-26"];
 
 const pad2=n=>String(n).padStart(2,'0');
@@ -230,51 +231,63 @@ const localDate=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate(
 const fmtH=n=>n.toFixed(1).replace('.',',');
 const fmtEur=n=>n.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 const round2=n=>Math.round(n*100)/100;
-const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],WDL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const isoDisp=iso=>{const[y,m,d]=iso.split('-');return `${d}.${m}.${y}`};
 const fmtDate=iso=>`${WD[new Date(iso+'T00:00').getDay()]} ${isoDisp(iso)}`;
 const clock=d=>`${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const monthName=m=>{const[y,mo]=m.split('-');return new Date(y,mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'})};
 function digits(v,kind){const d=v.replace(/\D/g,'');if(kind==='date'){const x=d.slice(0,8);let o=x.slice(0,2);if(x.length>2)o+='.'+x.slice(2,4);if(x.length>4)o+='.'+x.slice(4,8);return o}const t=d.slice(0,4);return t.length>2?t.slice(0,2)+':'+t.slice(2):t}
 function parseDate(s){const m=/^(\d{2})\.(\d{2})\.(\d{4})$/.exec(s.trim());if(!m)return null;const iso=`${m[3]}-${m[2]}-${m[1]}`;const d=new Date(iso+'T00:00');return(!isNaN(d)&&localDate(d)===iso)?iso:null}
 function parseTime(s){const m=/^(\d{2}):(\d{2})$/.exec(s.trim());return(m&&+m[1]<24&&+m[2]<60)?`${m[1]}:${m[2]}`:null}
 // Contract rule: start rounds down, end rounds up, to 15 minutes
 function roundHM(str,dir){const[h,m]=str.split(':').map(Number);let t=h*60+m;t=dir==='down'?Math.floor(t/15)*15:Math.ceil(t/15)*15;t%=1440;return `${pad2(Math.floor(t/60))}:${pad2(t%60)}`}
 
-let shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null;
+let shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null;
 
 const rowToShift=r=>{const e=+r.eve_bonus,n=+r.night_bonus,s=+r.sat_bonus,u=+r.sun_bonus;
   return{id:r.id,kind:r.kind,date:r.work_date,start:r.start_time?String(r.start_time).slice(0,5):'-',end:r.end_time?String(r.end_time).slice(0,5):'-',notes:r.notes||'',hours:+r.total_hours,extra:e+n+s+u,tags:r.tags||[],bd:{eve:e,night:n,sat:s,sun:u}}};
 const sortKey=s=>new Date(s.date+'T'+(s.start!=='-'?s.start:'00:00'));
-function setSync(m){const el=document.getElementById('sync');el.innerText=m;el.style.display=m?'block':'none'}
+const tagCls=t=>t==='Wknd/Hol'?'Wknd':t;
+const tagLbl=t=>t==='Wknd'?'Wknd/Hol':t;
+const tagsOf=s=>(s.tags&&s.tags.length)?s.tags:['Day'];
+const tagsHtml=tags=>tags.map(t=>`<span class="tag tag-${esc(tagCls(t))}">${esc(tagLbl(t))}</span>`).join('');
+const PRI=['Night','Wknd','Eve','Sick','Day'];
+const primary=ts=>{const c=ts.map(tagCls);return PRI.find(p=>c.includes(p))||'Day'};
+function setSync(m){const el=document.getElementById('syncmsg');el.innerText=m;el.style.display=m?'block':'none'}
 
 async function loadAll(){
   const q=IS_VIEWER?[sb.rpc('viewer_shifts',{p_token:TOKEN}),sb.rpc('viewer_paid_months',{p_token:TOKEN}),sb.rpc('viewer_payment_details',{p_token:TOKEN})]
     :[sb.from('shifts').select('*'),sb.from('paid_months').select('*'),sb.from('payment_details').select('*').maybeSingle()];
   const[a,b,c]=await Promise.all(q);
   if(a.error){setSync('Could not load data. Check your internet connection.');return false}
-  if(b.error||c.error)setSync('Payments data: '+(b.error||c.error).message);
+  if(b.error||c.error)setSync('Payments data: '+(b.error||c.error).message);else setSync('');
   shifts=a.data.map(rowToShift).sort((x,y)=>sortKey(y)-sortKey(x));
   paid={};(b.data||[]).forEach(r=>paid[r.month+':'+r.kind]=r.paid_at);
   pd=IS_VIEWER?((c.data&&c.data[0])||null):(c.data||null);
-  setSync('');monthDropdown();render();return true}
-
+  renderAll();return true}
 async function loadActive(){
   if(IS_VIEWER)return;
   const{data,error}=await sb.from('active_shift').select('started_at').maybeSingle();
   if(!error){activeStart=data?data.started_at:null;renderActive()}}
+async function loadCal(){
+  const{data,error}=await sb.rpc('calendar_token',IS_VIEWER?{p_token:TOKEN}:{});
+  if(error||!data){document.getElementById('cal-open').classList.add('hidden');document.getElementById('cal-copy').classList.add('hidden');return}
+  calUrl=`${SUPABASE_URL}/rest/v1/rpc/calendar_feed?p_token=${data}&apikey=${SUPABASE_KEY}`;
+  document.getElementById('cal-open').href=calUrl.replace('https://','webcal://')}
+function copyCal(b){if(calUrl)copy(calUrl,b)}
 
 // ---- calculation ----
 function calc(dateStr,s,e){
   const start=new Date(`${dateStr}T${s}`);let end=new Date(`${dateStr}T${e}`);
   if(end<=start)end.setDate(end.getDate()+1);
   const hours=(end-start)/3600000;if(!(hours>0))return null;
-  let eve=0,night=0,sat=0,sun=0;const cur=new Date(start);
+  let eve=0,night=0,sat=0,sun=0,normal=0;const cur=new Date(start);
   while(cur<end){const day=cur.getDay(),hr=cur.getHours();const hol=FI_HOLIDAYS.includes(localDate(cur));
     if(day===0||hol)sun+=BASE_RATE/60;else if(day===6)sat+=BASE_RATE/60*.2;
-    else if(hr>=22||hr<6)night+=BASE_RATE/60*.4;else if(hr>=18)eve+=BASE_RATE/60*.15;
+    else if(hr>=22||hr<6)night+=BASE_RATE/60*.4;else if(hr>=18)eve+=BASE_RATE/60*.15;else normal++;
     cur.setMinutes(cur.getMinutes()+1)}
-  const tags=[];if(eve>0)tags.push('Eve');if(night>0)tags.push('Night');if(sat>0||sun>0)tags.push('Wknd');if(!tags.length)tags.push('Day');
+  const tags=[];if(normal>0)tags.push('Day');if(eve>0)tags.push('Eve');if(night>0)tags.push('Night');if(sat>0||sun>0)tags.push('Wknd/Hol');
   return{hours,tags,eve,night,sat,sun}}
 
 async function addShift(dateStr,s,e,notes){
@@ -289,11 +302,10 @@ async function addShift(dateStr,s,e,notes){
 function initSlider(){
   const track=document.getElementById('slider'),knob=document.getElementById('knob');let drag=false,x0=0,max=0;
   const pos=x=>knob.style.left=(5+Math.max(0,Math.min(max,x)))+'px';
-  knob.addEventListener('pointerdown',e=>{drag=true;x0=e.clientX;max=track.clientWidth-58;knob.setPointerCapture(e.pointerId);knob.style.transition='none'});
+  knob.addEventListener('pointerdown',e=>{drag=true;x0=e.clientX;max=track.clientWidth-54;knob.setPointerCapture(e.pointerId);knob.style.transition='none'});
   knob.addEventListener('pointermove',e=>{if(drag)pos(e.clientX-x0)});
-  const up=async e=>{if(!drag)return;drag=false;knob.style.transition='left .2s';const x=e.clientX-x0;pos(0);if(x>max*.85)await toggleShift()};
-  knob.addEventListener('pointerup',up);knob.addEventListener('pointercancel',()=>{drag=false;pos(0)})}
-
+  knob.addEventListener('pointerup',async e=>{if(!drag)return;drag=false;knob.style.transition='left .2s';const x=e.clientX-x0;pos(0);if(x>max*.85)await toggleShift()});
+  knob.addEventListener('pointercancel',()=>{drag=false;pos(0)})}
 async function toggleShift(){
   if(IS_VIEWER||busy)return;busy=true;
   try{
@@ -310,12 +322,15 @@ async function toggleShift(){
       if(error){alert('Could not start the shift. Check your internet connection.');return}
       activeStart=iso;renderActive()}
   }finally{busy=false}}
-
 function renderActive(){
   const live=document.getElementById('live'),t=document.getElementById('slider'),l=document.getElementById('slider-lbl');
-  if(activeStart){live.classList.remove('hidden');live.innerText='Shift running since '+clock(new Date(activeStart));t.classList.add('end');l.innerText='Slide to end shift'}
-  else{live.classList.add('hidden');t.classList.remove('end');l.innerText='Slide to start shift'}}
+  if(activeStart){live.classList.remove('hidden');live.innerText='Shift running since '+clock(new Date(activeStart));t.classList.add('end');l.innerText='Slide to end'}
+  else{live.classList.add('hidden');t.classList.remove('end');l.innerText='Slide to start'}}
 
+// ---- actions ----
+function leftAction(){view==='shifts'?openSheet():logSick()}
+function openSheet(){document.getElementById('sheet').classList.add('open')}
+function closeSheet(){document.getElementById('sheet').classList.remove('open')}
 async function logSick(){
   if(IS_VIEWER||busy)return;
   const today=new Date(),day=today.getDay();
@@ -327,7 +342,6 @@ async function logSick(){
     const{error}=await sb.from('shifts').insert({kind:'sick',work_date:ds,notes:'Paid Sick Leave',total_hours:3.0,tags:['Sick']});
     if(error){alert('Could not save. Check your internet connection.');return}
     await loadAll()}finally{busy=false}}
-
 async function saveManual(){
   if(IS_VIEWER||busy)return;
   const d=parseDate(document.getElementById('i-date').value),s=parseTime(document.getElementById('i-start').value),e=parseTime(document.getElementById('i-end').value);
@@ -335,30 +349,28 @@ async function saveManual(){
   if(!s||!e){alert('Start and end must look like 15:30 (24-hour).');return}
   busy=true;try{
     if(await addShift(d,s,e,document.getElementById('i-notes').value)==='ok'){
-      document.getElementById('form').classList.remove('open');
-      ['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='')}
+      closeSheet();['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='');selDay=d;month=d.slice(0,7);renderAll()}
   }finally{busy=false}}
-
 async function deleteShift(id){
   if(IS_VIEWER||busy||!confirm('Delete this shift?'))return;busy=true;
   try{const{error}=await sb.from('shifts').delete().eq('id',id);
     if(error){alert('Could not delete. Check your internet connection.');return}await loadAll()}finally{busy=false}}
 
 // ---- payments ----
-async function markPaid(){
-  if(busy||paid[month+':salary'])return;
-  if(!confirm('Mark this month\'s salary as paid?'))return;busy=true;
-  try{const{error}=IS_VIEWER?await sb.rpc('mark_paid',{p_token:TOKEN,p_month:month,p_kind:'salary'}):await sb.from('paid_months').upsert({month,kind:'salary'});
+async function markPaid(m){
+  if(busy||paid[m+':salary'])return;
+  if(!confirm('Mark '+monthName(m)+' salary as paid?'))return;busy=true;
+  try{const{error}=IS_VIEWER?await sb.rpc('mark_paid',{p_token:TOKEN,p_month:m,p_kind:'salary'}):await sb.from('paid_months').upsert({month:m,kind:'salary'});
     if(error){alert('Could not save: '+error.message);return}await loadAll()}finally{busy=false}}
-async function undoPaid(){
-  if(IS_VIEWER||busy||!confirm('Undo paid for this month?'))return;busy=true;
-  try{const{data,error}=await sb.from('paid_months').delete().eq('month',month).eq('kind','salary').select();
+async function undoPaid(m){
+  if(IS_VIEWER||busy||!confirm('Undo paid for '+monthName(m)+'?'))return;busy=true;
+  try{const{data,error}=await sb.from('paid_months').delete().eq('month',m).eq('kind','salary').select();
     if(error){alert('Could not undo: '+error.message);return}
     if(!data||!data.length){alert('Nothing was removed. Check that you are logged in, then reload and try again.');return}
     await loadAll()}catch(e){alert('Undo failed: '+e.message)}finally{busy=false}}
 async function savePD(){
   const{error}=await sb.from('payment_details').upsert({singleton:true,account_holder:document.getElementById('pd-name').value.trim(),iban:document.getElementById('pd-iban').value.trim(),mobilepay:document.getElementById('pd-mp').value.trim()});
-  if(error){alert('Could not save.');return}document.getElementById('pd-form').classList.remove('open');await loadAll()}
+  if(error){alert('Could not save: '+error.message);return}document.getElementById('pd-form').classList.add('hidden');await loadAll()}
 function copy(text,btn){navigator.clipboard.writeText(text).then(()=>{const o=btn.innerText;btn.innerText='Copied';setTimeout(()=>btn.innerText=o,1200)}).catch(()=>prompt('Copy:',text))}
 
 // ---- totals ----
@@ -368,67 +380,92 @@ function totals(m){
   const sum=k=>ms.reduce((a,s)=>a+(s.bd[k]||0),0);
   const prem={eve:sum('eve'),night:sum('night'),sat:sum('sat'),sun:sum('sun')};
   const ot=Math.max(0,hours-TARGET)*BASE_RATE;
-  return{ms,hours,prem,ot,total:BASE_SALARY+ot+prem.eve+prem.night+prem.sat+prem.sun}}
-const tagCls=t=>t==='Wknd/Hol'?'Wknd':t;
-const tagLbl=t=>t==='Wknd'||t==='Wknd/Hol'?'Weekend':t;
-const tagsHtml=tags=>((tags&&tags.length)?tags:['Day']).map(t=>`<span class="tag tag-${esc(tagCls(t))}">${esc(tagLbl(t))}</span>`).join('');
+  const premTotal=prem.eve+prem.night+prem.sat+prem.sun;
+  return{ms,hours,prem,ot,premTotal,total:BASE_SALARY+ot+premTotal}}
+const paidDate=k=>{const p=paid[k];return p?isoDisp(localDate(new Date(p))):''};
 
 // ---- render ----
-function monthDropdown(){
-  const sel=document.getElementById('month');
-  const set=new Set([localDate(new Date()).slice(0,7),month,...shifts.map(s=>s.date.slice(0,7))]);
-  sel.innerHTML=[...set].sort().reverse().map(m=>{const[y,mo]=m.split('-');return `<option value="${m}"${m===month?' selected':''}>${new Date(y,mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'})}</option>`}).join('')}
-function onMonth(v){month=v;selDay=null;render()}
-function pickDay(d){selDay=selDay===d?null:d;render()}
+function allMonths(){return[...new Set([localDate(new Date()).slice(0,7),month,...shifts.map(s=>s.date.slice(0,7))])].sort().reverse()}
+function renderMonthSelects(){
+  const opts=allMonths().map(m=>{const[y,mo]=m.split('-');return `<option value="${m}"${m===month?' selected':''}>${new Date(y,mo-1).toLocaleString('en-GB',{month:'short'})}${m.slice(0,4)!==String(new Date().getFullYear())?' '+y:''}</option>`}).join('');
+  document.querySelectorAll('select.msel').forEach(s=>s.innerHTML=opts)}
+function onMonth(v){month=v;selDay=null;renderAll()}
 function showView(v){view=v;document.querySelectorAll('.view').forEach(e=>e.classList.add('hidden'));document.getElementById('v-'+v).classList.remove('hidden');
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));window.scrollTo(0,0)}
+  document.querySelectorAll('.nav').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
+  const bar=document.getElementById('actions');
+  if(IS_VIEWER||(v!=='overview'&&v!=='shifts'))bar.classList.add('hidden');else bar.classList.remove('hidden');
+  document.getElementById('act-left').innerText=v==='shifts'?'Add shift':'Sick day';
+  window.scrollTo(0,0)}
+function setMode(m){mode=m;document.getElementById('seg-cal').classList.toggle('on',m==='cal');document.getElementById('seg-list').classList.toggle('on',m==='list');
+  document.getElementById('shifts-cal').classList.toggle('hidden',m!=='cal');document.getElementById('shifts-list').classList.toggle('hidden',m!=='list')}
+function pickDay(d){selDay=d;renderShifts()}
 
-function render(){
+function shiftRow(s,withDel){
+  const d=new Date(s.date+'T00:00');
+  return `<div class="glass row" onclick="pickDay('${s.date}');showView('shifts')"><div class="dchip"><b>${pad2(d.getDate())}</b><span>${WD[d.getDay()]}</span></div>
+    <div><div class="t">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</div><div class="tg">${tagsHtml(tagsOf(s))}</div></div>
+    <div class="r"><b>${fmtH(s.hours)} h</b><div>+${fmtEur(s.extra)}</div></div></div>`}
+
+function renderOverview(){
   const T=totals(month),isPaid=!!paid[month+':salary'];
-  const pct=Math.min(100,T.hours/TARGET*100);
-  document.getElementById('ring').style.strokeDashoffset=CIRC-pct/100*CIRC;
-  document.getElementById('hours').innerText=fmtH(T.hours)+'h';
-  document.getElementById('total').innerText=fmtEur(T.total);
-  const chip=isPaid?'<span class="chip paid">Paid</span>':'<span class="chip open">Not paid</span>';
-  document.getElementById('paidchip').innerHTML=chip;
-  document.getElementById('b-ot').innerText=fmtEur(T.ot);
-  document.getElementById('b-eve').innerText=fmtEur(T.prem.eve);
-  document.getElementById('b-night').innerText=fmtEur(T.prem.night);
-  document.getElementById('b-sat').innerText=fmtEur(T.prem.sat);
-  document.getElementById('b-sun').innerText=fmtEur(T.prem.sun);
-  // shifts
-  renderCal(T.ms);
-  const shown=selDay?T.ms.filter(s=>s.date===selDay):T.ms;
-  const fl=document.getElementById('filter');
-  if(selDay){fl.classList.remove('hidden');fl.innerHTML=`<span>${fmtDate(selDay)}</span><button class="link-btn" onclick="pickDay('${selDay}')">Show all</button>`}else fl.classList.add('hidden');
-  document.getElementById('count').innerText=T.ms.length+' shift'+(T.ms.length!==1?'s':'');
-  document.getElementById('list').innerHTML=shown.length?shown.map(s=>`<div class="shift"><div><div class="d">${fmtDate(s.date)}</div>
-    <div class="t">${s.kind==='sick'?'Sick day':esc(s.start)+' - '+esc(s.end)}${s.notes&&s.kind!=='sick'?' · '+esc(s.notes):''}</div><div class="tags">${tagsHtml(s.tags)}</div></div>
-    <div class="r"><div class="h">${fmtH(s.hours)}h</div><div class="b">+${fmtEur(s.extra)}</div>${IS_VIEWER?'':`<button class="del" onclick="deleteShift('${esc(s.id)}')">Delete</button>`}</div></div>`).join(''):'<div class="empty">No shifts '+(selDay?'on this day.':'this month.')+'</div>';
-  // payments
-  const[y,mo]=month.split('-');
-  document.getElementById('pay-title').innerText=new Date(y,mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'});
-  document.getElementById('pay-amt').innerText=fmtEur(T.total);
-  document.getElementById('pay-chip').innerHTML=chip;
-  document.getElementById('mark-btn').classList.toggle('hidden',isPaid||!IS_VIEWER);
-  document.getElementById('undo-btn').classList.toggle('hidden',!isPaid||IS_VIEWER);
-  const rows=[['Amount',fmtEur(T.total),fmtEur(T.total).replace(/\s/g,' ')],['Name',pd&&pd.account_holder],['IBAN',pd&&pd.iban],['MobilePay',pd&&pd.mobilepay]];
-  const have=rows.filter(r=>r[1]);
-  document.getElementById('pd-rows').innerHTML=(pd&&(pd.iban||pd.mobilepay||pd.account_holder))?have.map((r,i)=>`<div class="copyrow"><div><div class="k">${r[0]}</div><div class="val">${esc(r[1])}</div></div><button class="btn ghost small" onclick="copy(${JSON.stringify(String(r[2]||r[1])).replace(/"/g,'&quot;')},this)">Copy</button></div>`).join(''):'<div class="empty">No payment details yet.</div>';
-  if(pd){document.getElementById('pd-name').value=pd.account_holder||'';document.getElementById('pd-iban').value=pd.iban||'';document.getElementById('pd-mp').value=pd.mobilepay||''}
-}
+  document.querySelectorAll('.mtitle').forEach(e=>{if(e.closest('#v-overview'))e.innerText=monthName(month)});
+  document.getElementById('ov-sub').innerText=IS_VIEWER?'Read-only view for Mika':'Your shifts and pay';
+  const card=(l,v,s,c)=>`<div class="glass"><div class="lbl">${l}</div><div class="big"${c?` style="color:${c}"`:''}>${v}</div><div class="lbl" style="font-weight:400">${s}</div></div>`;
+  document.getElementById('stats4').innerHTML=card('Total payout',fmtEur(T.total),'base + premiums')+card('Hours',fmtH(T.hours)+' h','of 80 h contract')+card('Overtime',fmtH(Math.max(0,T.hours-TARGET))+' h','over 80 h')+card('Premiums','+'+fmtEur(T.premTotal),'evening, night, weekend','#2F6B57');
+  document.getElementById('h-amt').innerText=fmtEur(T.total);
+  document.getElementById('h-bar').style.width=Math.min(100,T.hours/TARGET*100)+'%';
+  document.getElementById('h-w').innerText=fmtH(T.hours)+' h worked';
+  const mini=(l,v,c)=>`<div class="glass"><div class="lbl" style="font-size:11px">${l}</div><div class="v"${c?` style="color:${c}"`:''}>${v}</div></div>`;
+  document.getElementById('mini3').innerHTML=mini('Overtime',fmtH(Math.max(0,T.hours-TARGET))+' h')+mini('Premiums','+'+fmtEur(T.premTotal),'#2F6B57')+mini('Left',fmtH(Math.max(0,TARGET-T.hours))+' h');
+  document.getElementById('ov-count').innerText=T.ms.length+' this month';
+  document.getElementById('ov-rows').innerHTML=T.ms.length?T.ms.map(s=>shiftRow(s)).join(''):'<div class="glass card" style="text-align:center;color:var(--muted)">No shifts this month.</div>';
+  document.getElementById('ledger').innerHTML=T.ms.length?T.ms.map(s=>`<tr><td style="font-weight:600">${fmtDate(s.date)}</td><td class="tab-n">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</td><td style="font-weight:700">${fmtH(s.hours)} h</td><td><div style="display:flex;gap:6px">${tagsHtml(tagsOf(s))}</div></td><td style="text-align:right;font-weight:600;color:var(--acc)">+${fmtEur(s.extra)}</td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted)">No shifts this month.</td></tr>';
+  document.getElementById('prem').innerHTML=[['Guaranteed base',BASE_SALARY],['Overtime over 80 h',T.ot],['Evening +15 %',T.prem.eve],['Night +40 %',T.prem.night],['Saturday +20 %',T.prem.sat],['Sunday / holiday +100 %',T.prem.sun]].map(r=>`<div class="kv"><span>${r[0]}</span><b>${fmtEur(r[1])}</b></div>`).join('');
+  let pc=`<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">Payment</span><span class="chip ${isPaid?'ok':'open'}">${isPaid?'PAID':'OPEN'}</span></div>`;
+  if(isPaid)pc+=`<div class="sub" style="margin-top:12px">Paid ${paidDate(month+':salary')}</div>`+(IS_VIEWER?'':`<button class="link red" style="margin-top:8px" onclick="undoPaid('${month}')">Undo paid</button>`);
+  else if(IS_VIEWER)pc+=`<button class="chk" onclick="markPaid('${month}')"><i></i>Mark as paid</button>`;
+  else pc+=`<div class="sub" style="margin-top:12px">Waiting for Mika to mark it paid.</div>`;
+  document.getElementById('paycard').innerHTML=pc}
 
-function renderCal(ms){
+function renderShifts(){
+  const T=totals(month);
+  document.querySelectorAll('#v-shifts .mtitle').forEach(e=>e.innerText=monthName(month));
   const[y,mo]=month.split('-').map(Number);const first=new Date(y,mo-1,1),days=new Date(y,mo,0).getDate();
-  const lead=(first.getDay()+6)%7,today=localDate(new Date());
-  const by={};ms.forEach(s=>{(by[s.date]=by[s.date]||[]).push(...((s.tags&&s.tags.length)?s.tags:['Day']))});
-  let h='<div class="cal-h">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div>${d}</div>`).join('')+'</div><div class="cal-g">';
-  for(let i=0;i<lead;i++)h+='<div class="cal-d empty"></div>';
-  for(let d=1;d<=days;d++){const iso=`${month}-${pad2(d)}`;const tg=[...new Set((by[iso]||[]).map(tagCls))].slice(0,3);
-    h+=`<button class="cal-d${iso===today?' today':''}${iso===selDay?' sel':''}" onclick="pickDay('${iso}')">${d}<span class="cal-dots">${tg.map(t=>`<i class="dot-${t}"></i>`).join('')}</span></button>`}
-  document.getElementById('cal').innerHTML=h+'</div>'}
+  const lead=(first.getDay()+6)%7,today=localDate(new Date()),prevDays=new Date(y,mo-1,0).getDate();
+  if(!selDay||!selDay.startsWith(month))selDay=today.startsWith(month)?today:(T.ms[0]?T.ms[0].date:month+'-01');
+  const by={};T.ms.forEach(s=>(by[s.date]=by[s.date]||[]).push(s));
+  document.getElementById('cal-hd').innerHTML=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div>${d}</div>`).join('');
+  let h='';for(let i=0;i<lead;i++)h+=`<div class="cd out"><div class="dn">${prevDays-lead+1+i}</div></div>`;
+  for(let d=1;d<=days;d++){const iso=`${month}-${pad2(d)}`,list=by[iso]||[];
+    const hrs=list.reduce((a,s)=>a+s.hours,0),pr=list.length?primary(list.flatMap(tagsOf)):'';
+    h+=`<div class="cd${list.length?' has':''}${iso===today?' today':''}${iso===selDay?' sel':''}" onclick="pickDay('${iso}')"><div class="dn">${d}</div>${list.length?`<div class="hp hp-${pr}">${fmtH(hrs)} h</div>`:''}</div>`}
+  const tail=(7-((lead+days)%7))%7;for(let i=1;i<=tail;i++)h+=`<div class="cd out"><div class="dn">${i}</div></div>`;
+  document.getElementById('calg').innerHTML=h;
+  const dl=by[selDay]||[],dd=new Date(selDay+'T00:00');
+  let dc=`<div class="d1">${WDL[dd.getDay()]}</div><div class="d2">${isoDisp(selDay)}</div>`;
+  dc+=dl.length?dl.map(s=>`<div class="dshift"><div class="tm">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</div><div class="sub">${fmtH(s.hours)} h</div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${tagsHtml(tagsOf(s))}</div>
+    ${s.notes&&s.kind!=='sick'?`<div class="sub" style="margin-top:12px">Note</div><div style="font-size:14px;font-weight:600;margin-top:2px">${esc(s.notes)}</div>`:''}
+    <div class="sub" style="margin-top:12px">Premium</div><div style="font-size:14px;font-weight:700;margin-top:2px">+${fmtEur(s.extra)}</div>
+    ${IS_VIEWER?'':`<button class="link red" style="margin-top:10px" onclick="deleteShift('${esc(s.id)}')">Delete</button>`}</div>`).join(''):`<div class="dshift sub">No shift on this day.</div>`;
+  document.getElementById('daycard').innerHTML=dc;
+  document.getElementById('monthcard').innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:6px">${new Date(y,mo-1).toLocaleString('en-GB',{month:'long'})}</div><div class="kv"><span>Shifts</span><b>${T.ms.length}</b></div><div class="kv"><span>Hours</span><b>${fmtH(T.hours)} h</b></div><div class="kv"><span>Premiums</span><b>+${fmtEur(T.premTotal)}</b></div>`;
+  document.getElementById('shifts-list').innerHTML=T.ms.length?T.ms.map(s=>shiftRow(s)).join(''):'<div class="glass card" style="text-align:center;color:var(--muted)">No shifts this month.</div>'}
 
-// ---- monthly report PDF ----
+function renderPayments(){
+  document.getElementById('pay-months').innerHTML=allMonths().map(m=>{
+    const T=totals(m),isPaid=!!paid[m+':salary'];
+    let act;
+    if(isPaid)act=`<span class="chip ok">Paid ${paidDate(m+':salary')}</span>`+(IS_VIEWER?'':`<div><button class="link red" onclick="undoPaid('${m}')">Undo</button></div>`);
+    else act=IS_VIEWER?`<button class="pbtn" onclick="markPaid('${m}')">Mark paid</button>`:`<span class="chip open">Open</span>`;
+    return `<div class="glass card"><div class="mhead"><div><b>${monthName(m)}</b> <span class="chip ${isPaid?'ok':'open'}" style="margin-left:8px">${isPaid?'All paid':'Open'}</span></div><span class="tot">${fmtEur(T.total)}</span></div>
+      <div class="mrow"><div class="n"><b>Salary</b><div>Through payroll</div></div><span class="a">${fmtEur(T.total)}</span><div class="s">${act}</div></div>
+      <div class="mrow"><div class="n"><b>Receipts</b><div>Coming soon</div></div><div class="s"><span class="chip soon">SOON</span></div></div></div>`}).join('');
+  const rows=[['Account holder',pd&&pd.account_holder],['IBAN',pd&&pd.iban],['MobilePay',pd&&pd.mobilepay]].filter(r=>r[1]);
+  document.getElementById('pd-rows').innerHTML=rows.length?rows.map(r=>`<div class="copyr"><div style="flex:1;min-width:0"><div class="k">${r[0]}</div><div class="v">${esc(r[1])}</div></div><button class="copy" onclick="copy(${JSON.stringify(String(r[1])).replace(/"/g,'&quot;')},this)">Copy</button></div>`).join(''):'<div class="sub" style="padding:14px 0;text-align:center">No payment details yet.</div>';
+  if(pd){document.getElementById('pd-name').value=pd.account_holder||'';document.getElementById('pd-iban').value=pd.iban||'';document.getElementById('pd-mp').value=pd.mobilepay||''}}
+
+function renderAll(){renderMonthSelects();renderOverview();renderShifts();renderPayments()}
+
 function plain(s){return String(s).replace(/[  ]/g,' ')}
 function reportPdf(){
   const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});const T=totals(month);
@@ -484,6 +521,8 @@ function reportPdf(){
   const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(7.5);col(MUT);doc.text(`Page ${i} / ${n}`,R,279,{align:'right'})}
   doc.save(`mairemi-report-${month}.pdf`)}
 
+
+
 // ---- startup ----
 async function doLogin(){
   const email=document.getElementById('le').value.trim(),password=document.getElementById('lp').value,err=document.getElementById('err');err.innerText='';
@@ -493,22 +532,20 @@ async function doLogin(){
   document.body.classList.remove('needs-login');await startApp()}
 async function logout(){await sb.auth.signOut();location.reload()}
 function setRole(){
-  document.getElementById('role-lbl').innerText=IS_VIEWER?'':'';
-  document.querySelectorAll('.iane-only').forEach(e=>{if(IS_VIEWER)e.style.display='none'});
-  if(IS_VIEWER){document.getElementById('logout').style.display='none'}
-  else document.getElementById('slide-card').classList.remove('hidden')}
+  document.querySelectorAll('.who-av').forEach(e=>e.innerText=IS_VIEWER?'M':'I');
+  document.querySelectorAll('.who-nm').forEach(e=>e.innerText=IS_VIEWER?'Mika':'Iane');
+  if(IS_VIEWER){document.querySelectorAll('.iane-only').forEach(e=>e.classList.add('iane-hide'));document.getElementById('actions').classList.add('hidden')}
+  else{document.querySelectorAll('.who').forEach(e=>{e.style.cursor='pointer';e.title='Log out';e.onclick=()=>{if(confirm('Log out?'))logout()}})}
+  showView('overview')}
 async function startApp(){
   document.body.classList.remove('locked');setRole();
   document.getElementById('i-date').value=isoDisp(localDate(new Date()));
-  await Promise.all([loadAll(),loadActive()])}
+  await Promise.all([loadAll(),loadActive(),loadCal()])}
 async function boot(){
   [['i-date','date'],['i-start','time'],['i-end','time']].forEach(([id,k])=>document.getElementById(id).addEventListener('input',e=>e.target.value=digits(e.target.value,k)));
   document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
   initSlider();
-  // report button added to Overview breakdown card
-  const b=document.createElement('button');b.className='btn ghost';b.style.marginTop='14px';b.innerText='Download monthly report (PDF)';b.onclick=reportPdf;
-  document.getElementById('v-overview').querySelector('.brk').after(b);
-  if(IS_VIEWER){document.body.classList.remove('locked');setRole();await loadAll();setInterval(loadAll,60000)}
+  if(IS_VIEWER){document.body.classList.remove('locked');setRole();await loadAll();loadCal();setInterval(loadAll,60000)}
   else{const{data}=await sb.auth.getSession();if(data.session)await startApp();else document.body.classList.add('needs-login')}
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||document.body.classList.contains('locked'))return;loadAll();loadActive()})}
 boot();

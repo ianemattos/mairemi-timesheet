@@ -56,6 +56,14 @@ select.msel{appearance:none;-webkit-appearance:none;background:#fff;border:none;
 .dchip b{font-size:17px;line-height:1}.dchip span{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-top:2px}
 .row .t{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}.row .tg{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
 .row .r{text-align:right;margin-left:auto}.row .r b{font-size:16px}.row .r div{font-size:12px;font-weight:600;color:var(--acc);margin-top:2px}
+.nbadge{font-size:10px;font-weight:700;color:#fff;background:#B3463A;border-radius:999px;padding:1px 6px;margin-left:6px}
+.hp{display:block;line-height:1.25}.hp .t2{display:block;font-weight:600;opacity:.8;font-size:9.5px}.hp .d,.hp .hh,.hp .nf{display:none}.hp .ni{display:inline}
+.hp.plan{border:1.5px dashed currentColor;background:rgba(255,255,255,.35)}
+.hp-Req{background:rgba(255,255,255,.55);color:var(--muted);border:1.5px dashed rgba(91,106,98,.55)}
+.hmore{font-size:10px;font-weight:700;color:var(--muted);text-align:center;margin-top:2px}
+.reqrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.reqrow:first-of-type{border-top:none}
+.reqrow .n{flex:1;min-width:0;font-size:13px}.reqrow .n b{font-size:14px}.reqrow .n div{color:var(--muted);margin-top:1px}
+.chip.dec{background:rgba(179,70,58,.16);color:#8C2F26}
 .fw{font-weight:500;color:var(--muted);font-size:13px}
 .tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .tag-Day{background:rgba(40,130,210,.24);color:#0F4C85}.tag-Eve{background:rgba(255,149,0,.18);color:#8A4B00}
@@ -120,6 +128,7 @@ body.locked #app,body.locked #actions{display:none!important}
   main{padding:0 24px 130px 8px}
   .hdr{padding-top:22px}.hdr h1{font-size:24px;letter-spacing:-.5px}
   .stats4{display:flex}.bottom2{display:flex}
+  .hp .d,.hp .hh,.hp .nf{display:inline}.hp .ni{display:none}.hp .t2{font-size:10.5px}
   .cd{border-radius:14px;padding:7px 8px;min-height:62px}.cd .dn{font-size:12px}.hp{font-size:11px;padding:3px 0;margin-top:5px}.calg{gap:6px}.cal-hd div{font-size:11px;letter-spacing:.6px;text-transform:uppercase}
   .calwrap{flex-direction:row;align-items:flex-start}.calwrap>.calmain{flex:1;min-width:0}.calwrap>.calside{width:250px;flex:none;display:flex;flex-direction:column;gap:12px}
   .paygrid{flex-direction:row;align-items:flex-start}.paygrid>.left{flex:1;min-width:0}.paygrid>.right{width:270px;flex:none}
@@ -141,14 +150,14 @@ body.locked #app,body.locked #actions{display:none!important}
   <aside id="side" class="glass">
     <div class="brand">Mairemi Care</div>
     <button class="nav on" data-v="overview" onclick="showView('overview')">Overview</button>
-    <button class="nav" data-v="shifts" onclick="showView('shifts')">Shifts</button>
+    <button class="nav" data-v="shifts" onclick="showView('shifts')"><span>Shifts<span class="nbadge hidden"></span></span></button>
     <button class="nav" data-v="receipts" onclick="showView('receipts')">Receipts<span class="soon">SOON</span></button>
     <button class="nav" data-v="payments" onclick="showView('payments')">Payments</button>
   </aside>
   <main>
     <div id="pills" class="glass" style="margin-top:calc(12px + env(safe-area-inset-top))">
       <button class="nav on" data-v="overview" onclick="showView('overview')">Overview</button>
-      <button class="nav" data-v="shifts" onclick="showView('shifts')">Shifts</button>
+      <button class="nav" data-v="shifts" onclick="showView('shifts')">Shifts<span class="nbadge hidden"></span></button>
       <button class="nav" data-v="payments" onclick="showView('payments')">Payments</button>
       <button class="nav" data-v="receipts" onclick="showView('receipts')">Receipts</button>
     </div>
@@ -180,6 +189,7 @@ body.locked #app,body.locked #actions{display:none!important}
         <div class="pill"><span class="seg on" id="seg-cal" onclick="setMode('cal')">Calendar</span><span class="seg" id="seg-list" onclick="setMode('list')">List</span></div></div>
         <div class="hdr-r"><div class="pill"><select class="msel" onchange="onMonth(this.value)"></select></div>
           <a class="pill-btn desk" id="cal-open" href="#">Add to my calendar</a><div class="who desk"><span class="av who-av"></span><span class="nm who-nm"></span></div></div></div>
+      <div id="reqcard" class="glass card hidden" style="margin-bottom:12px"></div>
       <div id="shifts-cal" class="calwrap"><div class="calmain glass card" style="padding:12px 14px"><div class="calg cal-hd" id="cal-hd"></div><div class="calg" id="calg"></div></div>
         <div class="calside"><div class="glass card daycard" id="daycard"></div><div class="glass card" id="monthcard"></div></div></div>
       <div id="shifts-list" class="rows hidden"></div>
@@ -209,13 +219,13 @@ body.locked #app,body.locked #actions{display:none!important}
 
 <div class="overlay" id="sheet" onclick="if(event.target===this)closeSheet()"><div class="glass sheet">
   <div style="font-size:17px;font-weight:700" id="sheet-title">Add shift</div>
-  <div class="field"><label>For</label><div class="pill" style="align-self:flex-start"><span class="seg forbtn on" data-w="Mika" onclick="setFor('Mika')">Mika</span><span class="seg forbtn" data-w="Annina" onclick="setFor('Annina')">Annina</span></div></div>
+  <div class="field" id="for-field"><label>For</label><div class="pill" style="align-self:flex-start"><span class="seg forbtn on" data-w="Mika" onclick="setFor('Mika')">Mika</span><span class="seg forbtn" data-w="Annina" onclick="setFor('Annina')">Annina</span></div></div>
   <div class="field"><label>Date</label><input id="i-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10" autocomplete="off"></div>
   <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Start</label><input id="i-start" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div>
     <div class="field" style="flex:1"><label>End</label><input id="i-end" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div></div>
-  <div class="hint">Start rounds down and end rounds up to 15 min.</div>
+  <div class="hint" id="sheet-hint">Start rounds down and end rounds up to 15 min.</div>
   <div class="field"><label>Notes</label><input id="i-notes" placeholder="Optional"></div>
-  <button class="btn" onclick="saveManual()">Save shift</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>
+  <button class="btn" id="sheet-save" onclick="saveManual()">Save shift</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>
 </div></div>
 <style>.seg{padding:5px 12px;border-radius:999px;color:var(--muted);cursor:pointer}.seg.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}.iane-hide{display:none!important}</style>
 
@@ -247,23 +257,26 @@ function parseTime(s){const m=/^(\d{2}):(\d{2})$/.exec(s.trim());return(m&&+m[1]
 // Contract rule: start rounds down, end rounds up, to 15 minutes
 function roundHM(str,dir){const[h,m]=str.split(':').map(Number);let t=h*60+m;t=dir==='down'?Math.floor(t/15)*15:Math.ceil(t/15)*15;t%=1440;return `${pad2(Math.floor(t/60))}:${pad2(t%60)}`}
 
-let forWho='Mika',editId=null,shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null;
+let me=IS_VIEWER?'Mika':'Iane',requests=[],forWho='Mika',editId=null,shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null;
 
 const rowToShift=r=>{const e=+r.eve_bonus,n=+r.night_bonus,s=+r.sat_bonus,u=+r.sun_bonus;
   return{id:r.id,household:r.household||'',kind:r.kind,date:r.work_date,start:r.start_time?String(r.start_time).slice(0,5):'-',end:r.end_time?String(r.end_time).slice(0,5):'-',notes:r.notes||'',hours:+r.total_hours,extra:e+n+s+u,tags:r.tags||[],bd:{eve:e,night:n,sat:s,sun:u}}};
 const sortKey=s=>new Date(s.date+'T'+(s.start!=='-'?s.start:'00:00'));
+function endDT(s){const st=new Date(s.date+'T'+s.start),en=new Date(s.date+'T'+s.end);if(en<=st)en.setDate(en.getDate()+1);return en}
+const isPlanned=s=>s.kind!=='sick'&&s.start!=='-'&&endDT(s)>new Date();
 const tagCls=t=>t==='Wknd/Hol'?'Wknd':t;
 const tagLbl=t=>t==='Wknd'?'Wknd/Hol':t;
 const tagsOf=s=>(s.tags&&s.tags.length)?s.tags:['Day'];
-const tagsHtml=tags=>tags.map(t=>`<span class="tag tag-${esc(tagCls(t))}">${esc(tagLbl(t))}</span>`).join('');
+const tagsHtml=(tags,pl)=>(pl?'<span class="chip soon">Planned</span>':'')+tags.map(t=>`<span class="tag tag-${esc(tagCls(t))}">${esc(tagLbl(t))}</span>`).join('');
 const PRI=['Night','Wknd','Eve','Sick','Day'];
 const primary=ts=>{const c=ts.map(tagCls);return PRI.find(p=>c.includes(p))||'Day'};
 function setSync(m){const el=document.getElementById('syncmsg');el.innerText=m;el.style.display=m?'block':'none'}
 
 async function loadAll(){
-  const q=IS_VIEWER?[sb.rpc('viewer_shifts',{p_token:TOKEN}),sb.rpc('viewer_paid_months',{p_token:TOKEN}),sb.rpc('viewer_payment_details',{p_token:TOKEN})]
-    :[sb.from('shifts').select('*'),sb.from('paid_months').select('*'),sb.from('payment_details').select('*').maybeSingle()];
-  const[a,b,c]=await Promise.all(q);
+  const q=IS_VIEWER?[sb.rpc('viewer_shifts',{p_token:TOKEN}),sb.rpc('viewer_paid_months',{p_token:TOKEN}),sb.rpc('viewer_payment_details',{p_token:TOKEN}),sb.rpc('viewer_requests',{p_token:TOKEN})]
+    :[sb.from('shifts').select('*'),sb.from('paid_months').select('*'),sb.from('payment_details').select('*').maybeSingle(),sb.from('shift_requests').select('*').order('work_date')];
+  const[a,b,c,rq]=await Promise.all(q);
+  requests=(rq&&!rq.error&&rq.data)?rq.data.map(r=>({...r,start_time:String(r.start_time).slice(0,5),end_time:String(r.end_time).slice(0,5)})):[];
   if(a.error){setSync('Could not load data. Check your internet connection.');return false}
   if(b.error||c.error)setSync('Payments data: '+(b.error||c.error).message);else setSync('');
   shifts=a.data.map(rowToShift).sort((x,y)=>sortKey(y)-sortKey(x));
@@ -337,14 +350,20 @@ function renderActive(){
   else{live.classList.add('hidden');t.classList.remove('end');l.innerText='Slide to start'}}
 
 // ---- actions ----
-function leftAction(){view==='shifts'?openSheet():logSick()}
+function leftAction(){(IS_VIEWER||view==='shifts')?openSheet():logSick()}
 function lastFor(){const s=shifts.find(x=>x.household);return s?s.household:'Mika'}
 function setFor(w){forWho=w;document.querySelectorAll('.forbtn').forEach(b=>b.classList.toggle('on',b.dataset.w===w))}
-function editShift(id){const s=shifts.find(x=>x.id===id);if(!s||s.kind==='sick')return;editId=id;setFor(s.household||lastFor());
+function editShift(id){const s=shifts.find(x=>x.id===id);if(!s||s.kind==='sick')return;editId=id;
+  document.getElementById('for-field').classList.remove('hidden');document.getElementById('sheet-hint').innerText='Start rounds down and end rounds up to 15 min.';document.getElementById('sheet-save').innerText='Save shift';setFor(s.household||lastFor());
   document.getElementById('sheet-title').innerText='Edit shift';
   document.getElementById('i-date').value=isoDisp(s.date);document.getElementById('i-start').value=s.start;document.getElementById('i-end').value=s.end;
   document.getElementById('i-notes').value=s.notes==='Live shift timer'?'':s.notes;document.getElementById('sheet').classList.add('open')}
-function openSheet(){editId=null;setFor(lastFor());document.getElementById('sheet-title').innerText='Add shift';['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='');const d=(selDay&&selDay.startsWith(month))?selDay:localDate(new Date());document.getElementById('i-date').value=isoDisp(d);document.getElementById('sheet').classList.add('open')}
+function openSheet(){editId=null;setFor(lastFor());document.getElementById('sheet-title').innerText='Add shift';['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='');const d=(selDay&&selDay.startsWith(month))?selDay:localDate(new Date());document.getElementById('i-date').value=isoDisp(d);
+  document.getElementById('for-field').classList.toggle('hidden',IS_VIEWER);
+  document.getElementById('sheet-title').innerText=IS_VIEWER?'Request shift':'Add shift';
+  document.getElementById('sheet-hint').innerText=IS_VIEWER?'Iane will confirm your request.':'Start rounds down and end rounds up to 15 min.';
+  document.getElementById('sheet-save').innerText=IS_VIEWER?'Send request':'Save shift';
+  document.getElementById('sheet').classList.add('open')}
 function closeSheet(){editId=null;document.getElementById('sheet').classList.remove('open')}
 async function logSick(){
   if(IS_VIEWER||busy)return;
@@ -358,10 +377,11 @@ async function logSick(){
     if(error){alert('Could not save. Check your internet connection.');return}
     await loadAll()}finally{busy=false}}
 async function saveManual(){
-  if(IS_VIEWER||busy)return;
+  if(busy)return;
   const d=parseDate(document.getElementById('i-date').value),s=parseTime(document.getElementById('i-start').value),e=parseTime(document.getElementById('i-end').value);
   if(!d){alert('Date must look like 10.11.2026.');return}
   if(!s||!e){alert('Start and end must look like 15:30 (24-hour).');return}
+  if(IS_VIEWER){busy=true;try{if(await requestShift(d,s,e,document.getElementById('i-notes').value)){closeSheet();['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='');selDay=d;month=d.slice(0,7);renderAll()}}finally{busy=false}return}
   busy=true;try{
     if(await addShift(d,s,e,document.getElementById('i-notes').value,editId,forWho)==='ok'){
       closeSheet();['i-start','i-end','i-notes'].forEach(i=>document.getElementById(i).value='');selDay=d;month=d.slice(0,7);renderAll()}
@@ -370,6 +390,28 @@ async function deleteShift(id){
   if(IS_VIEWER||busy||!confirm('Delete this shift?'))return;busy=true;
   try{const{error}=await sb.from('shifts').delete().eq('id',id);
     if(error){alert('Could not delete. Check your internet connection.');return}await loadAll()}finally{busy=false}}
+
+// ---- requests ----
+async function requestShift(d,st,en,note){
+  const{error}=await sb.rpc('request_shift',{p_token:TOKEN,p_date:d,p_start:st,p_end:en,p_note:note||''});
+  if(error){alert('Could not send the request: '+error.message);return false}
+  await loadAll();return true}
+async function acceptRequest(id){
+  const r=requests.find(x=>x.id===id);if(!r||busy)return;busy=true;
+  try{const res=await addShift(r.work_date,r.start_time,r.end_time,r.note,null,r.household);
+    if(res!=='ok')return;
+    const{error}=await sb.from('shift_requests').update({status:'accepted'}).eq('id',id);
+    if(error){alert('Shift added, but the request could not be marked accepted: '+error.message);return}
+    await loadAll()}finally{busy=false}}
+async function declineRequest(id){
+  if(busy||!confirm('Decline this request?'))return;busy=true;
+  try{const{error}=await sb.from('shift_requests').update({status:'declined'}).eq('id',id);
+    if(error){alert('Could not save: '+error.message);return}await loadAll()}finally{busy=false}}
+async function cancelRequest(id){
+  if(busy||!confirm('Cancel this request?'))return;busy=true;
+  try{const{error}=await sb.rpc('cancel_request',{p_token:TOKEN,p_id:id});
+    if(error){alert('Could not cancel: '+error.message);return}await loadAll()}finally{busy=false}}
+const pendingReq=()=>requests.filter(r=>r.status==='requested');
 
 // ---- payments ----
 async function markPaid(m){
@@ -391,8 +433,9 @@ function copy(text,btn){navigator.clipboard.writeText(text).then(()=>{const o=bt
 // ---- totals ----
 function totals(m){
   const ms=shifts.filter(s=>s.date.startsWith(m));
-  const hours=ms.reduce((a,s)=>a+s.hours,0);
-  const sum=k=>ms.reduce((a,s)=>a+(s.bd[k]||0),0);
+  const done=ms.filter(s=>!isPlanned(s));
+  const hours=done.reduce((a,s)=>a+s.hours,0);
+  const sum=k=>done.reduce((a,s)=>a+(s.bd[k]||0),0);
   const prem={eve:sum('eve'),night:sum('night'),sat:sum('sat'),sun:sum('sun')};
   const ot=Math.max(0,hours-TARGET)*BASE_RATE;
   const premTotal=prem.eve+prem.night+prem.sat+prem.sun;
@@ -408,8 +451,8 @@ function onMonth(v){month=v;selDay=null;renderAll()}
 function showView(v){view=v;document.querySelectorAll('.view').forEach(e=>e.classList.add('hidden'));document.getElementById('v-'+v).classList.remove('hidden');
   document.querySelectorAll('.nav').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
   const bar=document.getElementById('actions');
-  if(IS_VIEWER||(v!=='overview'&&v!=='shifts'))bar.classList.add('hidden');else bar.classList.remove('hidden');
-  document.getElementById('act-left').innerText=v==='shifts'?'Add shift':'Sick day';
+  if(v!=='overview'&&v!=='shifts')bar.classList.add('hidden');else bar.classList.remove('hidden');
+  document.getElementById('act-left').innerText=IS_VIEWER?'Request shift':(v==='shifts'?'Add shift':'Sick day');
   window.scrollTo(0,0)}
 function setMode(m){mode=m;document.getElementById('seg-cal').classList.toggle('on',m==='cal');document.getElementById('seg-list').classList.toggle('on',m==='list');
   document.getElementById('shifts-cal').classList.toggle('hidden',m!=='cal');document.getElementById('shifts-list').classList.toggle('hidden',m!=='list')}
@@ -418,13 +461,13 @@ function pickDay(d){selDay=d;renderShifts()}
 function shiftRow(s,withDel){
   const d=new Date(s.date+'T00:00');
   return `<div class="glass row" onclick="pickDay('${s.date}');showView('shifts')"><div class="dchip"><b>${pad2(d.getDate())}</b><span>${WD[d.getDay()]}</span></div>
-    <div><div class="t">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}${s.household?`<span class="fw"> · ${esc(s.household)}</span>`:''}</div><div class="tg">${tagsHtml(tagsOf(s))}</div></div>
+    <div><div class="t">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}${s.household?`<span class="fw"> · ${esc(s.household)}</span>`:''}</div><div class="tg">${tagsHtml(tagsOf(s),isPlanned(s))}</div></div>
     <div class="r"><b>${fmtH(s.hours)} h</b><div>+${fmtEur(s.extra)}</div></div></div>`}
 
 function renderOverview(){
   const T=totals(month),isPaid=!!paid[month+':salary'];
   document.querySelectorAll('.mtitle').forEach(e=>{if(e.closest('#v-overview'))e.innerText=monthName(month)});
-  document.getElementById('ov-sub').innerText=IS_VIEWER?'Read-only view for Mika':'Your shifts and pay';
+  document.getElementById('ov-sub').innerText=IS_VIEWER?'Read-only view for '+me:'Your shifts and pay';
   const card=(l,v,s,c)=>`<div class="glass"><div class="lbl">${l}</div><div class="big"${c?` style="color:${c}"`:''}>${v}</div><div class="lbl" style="font-weight:400">${s}</div></div>`;
   document.getElementById('stats4').innerHTML=card('Total payout',fmtEur(T.total),'base + premiums')+card('Hours',fmtH(T.hours)+' h','of 80 h contract')+card('Overtime',fmtH(Math.max(0,T.hours-TARGET))+' h','over 80 h')+card('Premiums','+'+fmtEur(T.premTotal),'evening, night, weekend','#2F6B57');
   document.getElementById('h-amt').innerText=fmtEur(T.total);
@@ -434,12 +477,12 @@ function renderOverview(){
   document.getElementById('mini3').innerHTML=mini('Overtime',fmtH(Math.max(0,T.hours-TARGET))+' h')+mini('Premiums','+'+fmtEur(T.premTotal),'#2F6B57')+mini('Left',fmtH(Math.max(0,TARGET-T.hours))+' h');
   document.getElementById('ov-count').innerText=T.ms.length+' this month';
   document.getElementById('ov-rows').innerHTML=T.ms.length?T.ms.map(s=>shiftRow(s)).join(''):'<div class="glass card" style="text-align:center;color:var(--muted)">No shifts this month.</div>';
-  document.getElementById('ledger').innerHTML=T.ms.length?T.ms.map(s=>`<tr><td style="font-weight:600">${fmtDate(s.date)}</td><td class="tab-n">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</td><td style="font-weight:700">${fmtH(s.hours)} h</td><td>${esc(s.household)||'-'}</td><td><div style="display:flex;gap:6px">${tagsHtml(tagsOf(s))}</div></td><td style="text-align:right;font-weight:600;color:var(--acc)">+${fmtEur(s.extra)}</td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--muted)">No shifts this month.</td></tr>';
+  document.getElementById('ledger').innerHTML=T.ms.length?T.ms.map(s=>`<tr><td style="font-weight:600">${fmtDate(s.date)}</td><td class="tab-n">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</td><td style="font-weight:700">${fmtH(s.hours)} h</td><td>${esc(s.household)||'-'}</td><td><div style="display:flex;gap:6px">${tagsHtml(tagsOf(s),isPlanned(s))}</div></td><td style="text-align:right;font-weight:600;color:var(--acc)">+${fmtEur(s.extra)}</td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--muted)">No shifts this month.</td></tr>';
   document.getElementById('prem').innerHTML=[['Guaranteed base',BASE_SALARY],['Overtime over 80 h',T.ot],['Evening +15 %',T.prem.eve],['Night +40 %',T.prem.night],['Saturday +20 %',T.prem.sat],['Sunday / holiday +100 %',T.prem.sun]].map(r=>`<div class="kv"><span>${r[0]}</span><b>${fmtEur(r[1])}</b></div>`).join('');
   let pc=`<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">Payment</span><span class="chip ${isPaid?'ok':'open'}">${isPaid?'PAID':'OPEN'}</span></div>`;
   if(isPaid)pc+=`<div class="sub" style="margin-top:12px">Paid ${paidDate(month+':salary')}</div>`+(IS_VIEWER?'':`<button class="link red" style="margin-top:8px" onclick="undoPaid('${month}')">Undo paid</button>`);
-  else if(IS_VIEWER)pc+=`<button class="chk" onclick="markPaid('${month}')"><i></i>Mark as paid</button>`;
-  else pc+=`<div class="sub" style="margin-top:12px">Waiting for Mika to mark it paid.</div>`;
+  else if(IS_VIEWER&&me==='Mika')pc+=`<button class="chk" onclick="markPaid('${month}')"><i></i>Mark as paid</button>`;
+  else pc+=`<div class="sub" style="margin-top:12px">${IS_VIEWER?'Not paid yet.':'Waiting for Mika to mark it paid.'}</div>`;
   document.getElementById('paycard').innerHTML=pc}
 
 function renderShifts(){
@@ -448,30 +491,50 @@ function renderShifts(){
   const[y,mo]=month.split('-').map(Number);const first=new Date(y,mo-1,1),days=new Date(y,mo,0).getDate();
   const lead=(first.getDay()+6)%7,today=localDate(new Date()),prevDays=new Date(y,mo-1,0).getDate();
   if(!selDay||!selDay.startsWith(month))selDay=today.startsWith(month)?today:(T.ms[0]?T.ms[0].date:month+'-01');
-  const by={};T.ms.forEach(s=>(by[s.date]=by[s.date]||[]).push(s));
+  const by={},rby={};T.ms.forEach(s=>(by[s.date]=by[s.date]||[]).push(s));
+  pendingReq().filter(r=>r.work_date.startsWith(month)).forEach(r=>(rby[r.work_date]=rby[r.work_date]||[]).push(r));
   document.getElementById('cal-hd').innerHTML=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div>${d}</div>`).join('');
   let h='';for(let i=0;i<lead;i++)h+=`<div class="cd out"><div class="dn">${prevDays-lead+1+i}</div></div>`;
   for(let d=1;d<=days;d++){const iso=`${month}-${pad2(d)}`,list=by[iso]||[];
-    const hrs=list.reduce((a,s)=>a+s.hours,0),pr=list.length?primary(list.flatMap(tagsOf)):'';
-    h+=`<div class="cd${list.length?' has':''}${iso===today?' today':''}${iso===selDay?' sel':''}" onclick="pickDay('${iso}')"><div class="dn">${d}</div>${list.length?`<div class="hp hp-${pr}">${fmtH(hrs)} h</div>`:''}</div>`}
+    const rl=rby[iso]||[];
+    const items=[...list.map(s=>({t:s.kind==='sick'?'Sick day':s.start,e:s.kind==='sick'?'':s.end,who:s.household,h:s.hours,cls:'hp-'+primary(tagsOf(s)),plan:isPlanned(s),req:false})),
+      ...rl.map(r=>({t:r.start_time,e:r.end_time,who:r.household,h:null,cls:'hp-Req',plan:false,req:true}))];
+    const pill=i=>`<div class="hp ${i.cls}${i.plan?' plan':''}"><span>${i.t}${i.e?`<span class="d"> – ${i.e}</span>`:''}</span>${i.who||i.req?`<span class="t2"><span class="nf">${esc(i.who||'')}${i.req?' · requested':''}</span><span class="ni">${esc((i.who||'?')[0])}${i.req?'?':''}</span>${i.h!=null?`<span class="hh"> · ${fmtH(i.h)} h</span>`:''}</span>`:''}</div>`;
+    h+=`<div class="cd${items.length?' has':''}${iso===today?' today':''}${iso===selDay?' sel':''}" onclick="pickDay('${iso}')"><div class="dn">${d}</div>${items.slice(0,2).map(pill).join('')}${items.length>2?`<div class="hmore">+${items.length-2}</div>`:''}</div>`}
   const tail=(7-((lead+days)%7))%7;for(let i=1;i<=tail;i++)h+=`<div class="cd out"><div class="dn">${i}</div></div>`;
   document.getElementById('calg').innerHTML=h;
   const dl=by[selDay]||[],dd=new Date(selDay+'T00:00');
   let dc=`<div class="d1">${WDL[dd.getDay()]}</div><div class="d2">${isoDisp(selDay)}</div>`;
-  dc+=dl.length?dl.map(s=>`<div class="dshift"><div class="tm">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</div><div class="sub">${fmtH(s.hours)} h</div>${s.household?`<div class="sub" style="margin-top:12px">For</div><div style="font-size:14px;font-weight:600;margin-top:2px">${esc(s.household)}</div>`:''}<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${tagsHtml(tagsOf(s))}</div>
+  dc+=dl.length?dl.map(s=>`<div class="dshift"><div class="tm">${s.kind==='sick'?'Sick day':esc(s.start)+' – '+esc(s.end)}</div><div class="sub">${fmtH(s.hours)} h</div>${s.household?`<div class="sub" style="margin-top:12px">For</div><div style="font-size:14px;font-weight:600;margin-top:2px">${esc(s.household)}</div>`:''}<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${tagsHtml(tagsOf(s),isPlanned(s))}</div>
     ${s.notes&&s.kind!=='sick'?`<div class="sub" style="margin-top:12px">Note</div><div style="font-size:14px;font-weight:600;margin-top:2px">${esc(s.notes)}</div>`:''}
     <div class="sub" style="margin-top:12px">Premium</div><div style="font-size:14px;font-weight:700;margin-top:2px">+${fmtEur(s.extra)}</div>
     ${IS_VIEWER?'':`<div style="display:flex;gap:16px;margin-top:10px">${s.kind==='sick'?'':`<button class="link" onclick="editShift('${esc(s.id)}')">Edit</button>`}<button class="link red" onclick="deleteShift('${esc(s.id)}')">Delete</button></div>`}</div>`).join(''):`<div class="dshift sub">No shift on this day.</div>`;
+  const dr=pendingReq().filter(r=>r.work_date===selDay);
+  dc+=dr.map(r=>`<div class="dshift"><div class="tm">${esc(r.start_time)} – ${esc(r.end_time)}</div><div class="sub"><span class="chip open">Requested</span> ${esc(r.household)}${r.note?' · '+esc(r.note):''}</div>${IS_VIEWER?(r.household===me?`<button class="link red" style="margin-top:8px" onclick="cancelRequest('${r.id}')">Cancel request</button>`:''):`<div style="display:flex;gap:16px;margin-top:8px"><button class="link" onclick="acceptRequest('${r.id}')">Accept</button><button class="link red" onclick="declineRequest('${r.id}')">Decline</button></div>`}</div>`).join('');
+  if(!dl.length&&dr.length)dc=dc.replace('<div class="dshift sub">No shift on this day.</div>','');
   document.getElementById('daycard').innerHTML=dc;
+  renderRequests();
   document.getElementById('monthcard').innerHTML=`<div style="font-size:13px;font-weight:700;margin-bottom:6px">${new Date(y,mo-1).toLocaleString('en-GB',{month:'long'})}</div><div class="kv"><span>Shifts</span><b>${T.ms.length}</b></div><div class="kv"><span>Hours</span><b>${fmtH(T.hours)} h</b></div><div class="kv"><span>Premiums</span><b>+${fmtEur(T.premTotal)}</b></div>`;
   document.getElementById('shifts-list').innerHTML=T.ms.length?T.ms.map(s=>shiftRow(s)).join(''):'<div class="glass card" style="text-align:center;color:var(--muted)">No shifts this month.</div>'}
+
+function renderRequests(){
+  const el=document.getElementById('reqcard'),pend=pendingReq();
+  const mine=IS_VIEWER?requests.filter(r=>r.household===me&&r.status!=='requested'&&r.work_date>=localDate(new Date())):[];
+  const rows=[...pend,...mine];
+  document.querySelectorAll('.nbadge').forEach(b=>{if(!IS_VIEWER&&pend.length){b.innerText=pend.length+' new';b.classList.remove('hidden')}else b.classList.add('hidden')});
+  if(!rows.length){el.classList.add('hidden');return}
+  el.classList.remove('hidden');
+  el.innerHTML=`<div style="font-size:15px;font-weight:700;margin-bottom:4px">Requests</div>`+rows.map(r=>{
+    const chip=r.status==='requested'?'<span class="chip open">Requested</span>':r.status==='accepted'?'<span class="chip ok">Accepted</span>':'<span class="chip dec">Declined</span>';
+    const act=r.status!=='requested'?'':IS_VIEWER?(r.household===me?`<button class="link red" onclick="cancelRequest('${r.id}')">Cancel</button>`:''):`<button class="pbtn" onclick="acceptRequest('${r.id}')">Accept</button><button class="link red" onclick="declineRequest('${r.id}')">Decline</button>`;
+    return `<div class="reqrow"><div class="n"><b>${esc(r.household)} · ${fmtDate(r.work_date)}</b><div>${esc(r.start_time)} – ${esc(r.end_time)}${r.note?' · '+esc(r.note):''}</div></div>${chip}${act}</div>`}).join('')}
 
 function renderPayments(){
   document.getElementById('pay-months').innerHTML=allMonths().map(m=>{
     const T=totals(m),isPaid=!!paid[m+':salary'];
     let act;
     if(isPaid)act=`<span class="chip ok">Paid ${paidDate(m+':salary')}</span>`+(IS_VIEWER?'':`<div><button class="link red" onclick="undoPaid('${m}')">Undo</button></div>`);
-    else act=IS_VIEWER?`<button class="pbtn" onclick="markPaid('${m}')">Mark paid</button>`:`<span class="chip open">Open</span>`;
+    else act=(IS_VIEWER&&me==='Mika')?`<button class="pbtn" onclick="markPaid('${m}')">Mark paid</button>`:`<span class="chip open">Open</span>`;
     return `<div class="glass card"><div class="mhead"><div><b>${monthName(m)}</b> <span class="chip ${isPaid?'ok':'open'}" style="margin-left:8px">${isPaid?'All paid':'Open'}</span></div><span class="tot">${fmtEur(T.total)}</span></div>
       <div class="mrow"><div class="n"><b>Salary</b><div>Through payroll</div></div><span class="a">${fmtEur(T.total)}</span><div class="s">${act}</div></div>
       <div class="mrow"><div class="n"><b>Receipts</b><div>Coming soon</div></div><div class="s"><span class="chip soon">SOON</span></div></div></div>`}).join('');
@@ -504,7 +567,7 @@ function reportPdf(){
   let yy=78;doc.setFont('helvetica','bold');doc.setFontSize(10);col(INK);doc.text('Shifts',L,yy);yy+=6;
   const hdr=()=>{doc.setFontSize(7);col(MUT);[['DATE',L],['TIME',55],['HOURS',80],['TAGS',98],['NOTE',130]].forEach(h=>doc.text(h[0],h[1],yy));doc.text('PREMIUM',R,yy,{align:'right'});yy+=2;doc.setDrawColor(...INK);doc.setLineWidth(.4);doc.line(L,yy,R,yy);yy+=6};
   hdr();
-  [...T.ms].sort((a,b)=>sortKey(b)-sortKey(a)).forEach(s=>{
+  [...T.ms].filter(s=>!isPlanned(s)).sort((a,b)=>sortKey(b)-sortKey(a)).forEach(s=>{
     if(yy>245){doc.addPage();yy=20;hdr()}
     doc.setFontSize(8.5);doc.setFont('helvetica','bold');col(INK);doc.text(fmtDate(s.date),L,yy);
     doc.setFont('helvetica','normal');doc.text(s.kind==='sick'?'Sick day':s.start+' - '+s.end,55,yy);
@@ -547,9 +610,9 @@ async function doLogin(){
   document.body.classList.remove('needs-login');await startApp()}
 async function logout(){await sb.auth.signOut();location.reload()}
 function setRole(){
-  document.querySelectorAll('.who-av').forEach(e=>e.innerText=IS_VIEWER?'M':'I');
-  document.querySelectorAll('.who-nm').forEach(e=>e.innerText=IS_VIEWER?'Mika':'Iane');
-  if(IS_VIEWER){document.querySelectorAll('.iane-only').forEach(e=>e.classList.add('iane-hide'));document.getElementById('actions').classList.add('hidden')}
+  document.querySelectorAll('.who-av').forEach(e=>e.innerText=me[0]);
+  document.querySelectorAll('.who-nm').forEach(e=>e.innerText=me);
+  if(IS_VIEWER){document.querySelectorAll('.iane-only').forEach(e=>e.classList.add('iane-hide'));document.getElementById('slider').classList.add('hidden');document.getElementById('act-left').style.flex='1'}
   else{document.querySelectorAll('.who').forEach(e=>{e.style.cursor='pointer';e.title='Log out';e.onclick=()=>{if(confirm('Log out?'))logout()}})}
   showView('overview')}
 async function startApp(){
@@ -565,7 +628,7 @@ async function boot(){
   document.getElementById('i-date').addEventListener('blur',e=>{const d=parseDate(e.target.value);if(d)e.target.value=isoDisp(d)});
   document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
   initSlider();
-  if(IS_VIEWER){document.body.classList.remove('locked');setRole();await loadAll();loadCal();setInterval(loadAll,60000)}
+  if(IS_VIEWER){const w=await sb.rpc('viewer_who',{p_token:TOKEN});if(w.data)me=w.data;document.body.classList.remove('locked');setRole();await loadAll();loadCal();setInterval(loadAll,60000)}
   else{const{data}=await sb.auth.getSession();if(data.session)await startApp();else document.body.classList.add('needs-login')}
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||document.body.classList.contains('locked'))return;loadAll();loadActive()})}
 boot();

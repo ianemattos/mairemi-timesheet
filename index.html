@@ -136,6 +136,13 @@ body.locked #app,body.locked #actions{display:none!important}
   .paygrid{flex-direction:row;align-items:flex-start}.paygrid>.left{flex:1;min-width:0}.paygrid>.right{width:270px;flex:none}
   #actions{margin-left:calc(50% - 230px + 101px);margin-right:auto;left:0;right:auto;width:460px}
 }
+.rt{display:block}.rtr,.rth{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:2px 12px;align-items:start;padding:11px 0;border-top:1px solid var(--line)}
+.rth{display:none;border-top:none;padding:10px 0 6px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase}
+.rt>.rtr:first-child{border-top:none}.rtr .rn{color:var(--muted);font-size:13px;font-weight:600;padding-top:1px}
+.rtr .rp b{font-size:14px;display:block}.rtr small{display:block;font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35}
+.rtr .ra{text-align:right;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}.rtr .ra .link{display:block;margin:3px 0 0 auto;padding:0}
+.rdesk{display:none}.rtr .rf,.rtr .rm,.rtr .rd{font-size:13px;line-height:1.35}.rtr .rd small{font-size:12px}
+@media(min-width:900px){.rt .rtr,.rt .rth{grid-template-columns:28px 78px minmax(0,1fr) 96px 150px 84px;gap:0 14px}.rth{display:grid}.rdesk{display:block}.rmob{display:none!important}.rtr .ri{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
 </style>
 </head>
 <body class="locked">
@@ -213,7 +220,7 @@ body.locked #app,body.locked #actions{display:none!important}
       <div class="hdr"><div><h1>Receipts</h1><div class="sub" id="r-sub"></div></div><div class="hdr-r"><button class="pbtn iane-only" onclick="openISheet()">Paste log</button><button class="pbtn iane-only" onclick="openRSheet()">Add receipt</button><div class="who desk"><span class="av who-av"></span><span class="nm who-nm"></span></div></div></div>
       <div class="stack">
         <div class="glass card hidden" id="r-hint" style="font-size:13px"></div>
-        <div class="glass card"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:700">Open log</div><div id="r-total" style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums"></div></div>
+        <div class="glass card"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding-bottom:14px;margin-bottom:4px;border-bottom:1px solid var(--line)"><div><div style="font-size:15px;font-weight:700">Open log</div><div class="sub" id="r-count" style="font-size:12px;margin-top:2px"></div></div><div style="text-align:right"><div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px">TOTAL</div><div id="r-total" style="font-size:24px;font-weight:700;letter-spacing:-.4px;line-height:1.1;font-variant-numeric:tabular-nums"></div></div></div>
           <div id="r-list"></div>
           <div id="r-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"></div></div>
         <div class="glass card hidden" id="r-arch"></div>
@@ -582,9 +589,16 @@ const fmtN=n=>n.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionD
 const forText=r=>r.for_who==='Split'?`Iane ${fmtN(r.iane_amount)}, Maire & Remi ${fmtN(r.amount-r.iane_amount)}`:r.for_who;
 const rv=id=>document.getElementById(id).value;
 function suggestMeal(t){const h=+t.slice(0,2)+(+t.slice(3,5))/60;return h>=10.5&&h<14?['Lunch']:h>=14&&h<17?['Snack']:h>=17?['Dinner']:['Coffee']}
+const rHead='<div class="rth"><div>#</div><div>Date</div><div>Place</div><div>Category</div><div>For</div><div style="text-align:right">Total</div></div>';
 function rRow(r,n,canEdit){
   const photo=r.photo_path?`<button class="link" onclick="event.stopPropagation();showPhoto('${esc(r.photo_path)}')">Photo</button>`:'';
-  return `<div class="reqrow"${canEdit?` style="cursor:pointer" onclick="openRSheet('${r.id}')"`:''}><div class="n"><b>${n}. ${esc(r.place)}</b><div>${fmtDate(r.receipt_date)} ${esc(r.receipt_time)} · ${esc(r.meal)} · ${esc(forText(r))}${r.note?' · '+esc(r.note):''}</div></div><span style="font-weight:700;font-variant-numeric:tabular-nums">${fmtEur(r.amount)}</span>${photo}</div>`}
+  const dt=new Date(r.receipt_date+'T00:00'),dshort=`${WD[dt.getDay()]} ${r.receipt_date.slice(8)}.${r.receipt_date.slice(5,7)}.`;
+  const forHtml=r.for_who==='Split'?`Iane ${fmtN(r.iane_amount)}<br>Maire &amp; Remi ${fmtN(r.amount-r.iane_amount)}`:esc(r.for_who);
+  return `<div class="rtr"${canEdit?` style="cursor:pointer" onclick="openRSheet('${r.id}')"`:''}><div class="rn">${n}</div>
+    <div class="rd rdesk">${dshort}<small>${esc(r.receipt_time)}</small></div>
+    <div class="rp"><b>${esc(r.place)}</b>${r.note?`<small class="ri">${esc(r.note)}</small>`:''}<small class="rmob">${dshort} ${esc(r.receipt_time)} · ${esc(r.meal)} · ${esc(forText(r))}</small></div>
+    <div class="rm rdesk">${esc(r.meal)}</div><div class="rf rdesk">${forHtml}</div>
+    <div class="ra">${fmtEur(r.amount)}${photo}</div></div>`}
 function mpNote(list){
   const days={};list.forEach(r=>(days[r.receipt_date]=days[r.receipt_date]||[]).push(r));
   return Object.keys(days).sort().map(d=>{
@@ -596,8 +610,8 @@ function copyNote(b){copy(mpNote(openR()),b)}
 function renderReceipts(){
   const o=openR(),t=rSum(o);
   document.getElementById('r-sub').innerText=IS_VIEWER?'Food and small items Iane buys for the children.':'Log of what you bought, until it is paid.';
-  document.getElementById('r-total').innerText=fmtEur(t);
-  document.getElementById('r-list').innerHTML=o.length?o.map((r,i)=>rRow(r,i+1,!IS_VIEWER)).join(''):'<div style="color:var(--muted);font-size:13px;padding:14px 0">No open receipts.</div>';
+  document.getElementById('r-total').innerText=fmtEur(t);document.getElementById('r-count').innerText=o.length?o.length+(o.length===1?' receipt':' receipts')+', not paid yet':'Nothing open';
+  document.getElementById('r-list').innerHTML=o.length?'<div class="rt">'+rHead+o.map((r,i)=>rRow(r,i+1,!IS_VIEWER)).join('')+'</div>':'<div style="color:var(--muted);font-size:13px;padding:14px 0">No open receipts.</div>';
   let act='';
   if(!IS_VIEWER&&o.length)act+=`<button class="pbtn" onclick="copyNote(this)">Copy MobilePay note</button>`;
   if(o.some(r=>r.photo_path))act+=`<button class="pbtn" onclick="photosZip()">Photos (zip)</button>`;
@@ -616,7 +630,7 @@ function renderReceipts(){
   const keys=Object.keys(batches).sort().reverse(),ar=document.getElementById('r-arch');
   ar.classList.toggle('hidden',!keys.length);
   ar.innerHTML=keys.length?`<div style="font-size:15px;font-weight:700;margin-bottom:6px">Paid</div>`+keys.map(k=>{const b=batches[k];
-    return `<details style="padding:8px 0;border-top:1px solid var(--line)"><summary style="cursor:pointer;font-size:14px;font-weight:600">Paid ${isoDisp(localDate(new Date(k)))} · ${b.length} ${b.length===1?"receipt":"receipts"} · ${fmtEur(rSum(b))}</summary><div>${b.map((r,i)=>rRow(r,i+1,false)).join('')}${IS_VIEWER?'':`<button class="link red" style="margin-top:6px" onclick="undoReceiptsPaid('${k}')">Undo</button>`}</div></details>`}).join(''):''}
+    return `<details style="padding:8px 0;border-top:1px solid var(--line)"><summary style="cursor:pointer;font-size:14px;font-weight:600">Paid ${isoDisp(localDate(new Date(k)))} · ${b.length} ${b.length===1?"receipt":"receipts"} · ${fmtEur(rSum(b))}</summary><div class="rt">${rHead}${b.map((r,i)=>rRow(r,i+1,false)).join('')}</div><div>${IS_VIEWER?'':`<button class="link red" style="margin-top:6px" onclick="undoReceiptsPaid('${k}')">Undo</button>`}</div></details>`}).join(''):''}
 async function markReceiptsPaid(){
   const o=openR();if(busy||!IS_VIEWER||!o.length||!confirm('Mark '+o.length+' receipts ('+fmtEur(rSum(o))+') as paid?'))return;busy=true;
   try{const{error}=await sb.rpc('mark_receipts_paid',{p_token:TOKEN});if(error){alert('Could not save: '+error.message);return}await loadAll()}finally{busy=false}}
@@ -797,6 +811,10 @@ async function boot(){
       t.value=digits(t.value,k);let n=0,np=t.value.length;if(before===0)np=0;else for(let i=0;i<t.value.length;i++){if(/\d/.test(t.value[i]))n++;if(n===before){np=i+1;break}}
       t.setSelectionRange(np,np)});
     el.addEventListener('focus',e=>setTimeout(()=>e.target.select(),0))});
+  ['i-start','i-end','r-time'].forEach(id=>document.getElementById(id).addEventListener('blur',e=>{
+    const d=e.target.value.replace(/\D/g,'');if(!d)return;
+    const hh=d.length<=2?d.padStart(2,'0'):d.length===3?'0'+d[0]:d.slice(0,2),mm=d.length<=2?'00':d.slice(-2);
+    if(+hh<24&&+mm<60)e.target.value=hh+':'+mm}));
   document.getElementById('i-date').addEventListener('blur',e=>{const d=parseDate(e.target.value);if(d)e.target.value=isoDisp(d)});
   document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
   initSlider();

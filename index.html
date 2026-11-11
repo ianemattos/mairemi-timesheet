@@ -404,17 +404,55 @@ function plain(s){return String(s).replace(/[  ]/g,' ')}
 function reportPdf(){
   const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});const T=totals(month);
   const[y,mo]=month.split('-');const label=new Date(y,mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'});
-  let yy=18;doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('Mairemi Care - Monthly report',15,yy);
-  doc.setFontSize(12);doc.setFont('helvetica','normal');yy+=8;doc.text(label+(paid[month+':salary']?'   (Paid)':'   (Not paid)'),15,yy);
-  yy+=10;const lines=[['Hours worked',fmtH(T.hours)+' h'],['Base salary',fmtEur(BASE_SALARY)],['Overtime (over 80 h)',fmtEur(T.ot)],['Evening +15 %',fmtEur(T.prem.eve)],['Night +40 %',fmtEur(T.prem.night)],['Saturday +20 %',fmtEur(T.prem.sat)],['Sunday / holiday +100 %',fmtEur(T.prem.sun)]];
-  doc.setFontSize(10.5);lines.forEach(l=>{doc.text(l[0],15,yy);doc.text(plain(l[1]),95,yy,{align:'right'});yy+=5.5});
-  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('Total salary',15,yy+2);doc.text(plain(fmtEur(T.total)),95,yy+2,{align:'right'});
-  yy+=14;doc.setFontSize(9);doc.text('Date',15,yy);doc.text('Time',50,yy);doc.text('Hours',85,yy);doc.text('Type',105,yy);doc.text('Bonus',195,yy,{align:'right'});
-  doc.setFont('helvetica','normal');yy+=2;doc.line(15,yy,195,yy);yy+=5;
-  [...T.ms].sort((a,b)=>sortKey(a)-sortKey(b)).forEach(s=>{
-    if(yy>285){doc.addPage();yy=18}
-    doc.text(isoDisp(s.date),15,yy);doc.text(s.kind==='sick'?'Sick day':s.start+' - '+s.end,50,yy);doc.text(fmtH(s.hours),85,yy);
-    doc.text((s.tags||['Day']).map(tagLbl).join(', '),105,yy);doc.text(plain('+'+fmtEur(s.extra)),195,yy,{align:'right'});yy+=5.2});
+  const L=15,R=195,G=[78,110,90],INK=[38,52,44],MUT=[107,122,112],LINE=[225,225,215];
+  const col=c=>doc.setTextColor(...c);
+  const PILL={Day:[[59,125,216],[218,230,248]],Eve:[[217,138,28],[251,232,205]],Night:[[52,69,107],[205,210,222]],Wknd:[[201,96,122],[246,218,224]],Sick:[[42,157,143],[212,236,233]]};
+  // header
+  doc.setFont('helvetica','bold');doc.setFontSize(8);col(G);doc.text('MONTHLY REPORT',L,22);
+  doc.setFontSize(22);col(INK);doc.text(label,L,32);
+  doc.setFontSize(12);doc.text('Mairemi Care',R,24,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(9);col(MUT);doc.text('Nanny: Iane',R,29,{align:'right'});
+  const now=new Date();doc.text('Created '+isoDisp(localDate(now)),R,34,{align:'right'});
+  doc.setDrawColor(...G);doc.setLineWidth(.8);doc.line(L,39,R,39);
+  // stat cards
+  const prem=T.prem.eve+T.prem.night+T.prem.sat+T.prem.sun;
+  const cards=[['TOTAL PAYOUT',plain(fmtEur(T.total))],['HOURS',fmtH(T.hours)+' h / 80 h'],['PREMIUMS',plain(fmtEur(prem+T.ot))]];
+  const cw=(R-L-8)/3;doc.setLineWidth(.25);doc.setDrawColor(...LINE);
+  cards.forEach((c,i)=>{const x=L+i*(cw+4);doc.roundedRect(x,45,cw,20,3,3);doc.setFont('helvetica','bold');doc.setFontSize(7);col(MUT);doc.text(c[0],x+4,52);doc.setFontSize(13);col(INK);doc.text(c[1],x+4,60)});
+  // shifts table
+  let yy=78;doc.setFont('helvetica','bold');doc.setFontSize(10);col(INK);doc.text('Shifts',L,yy);yy+=6;
+  const hdr=()=>{doc.setFontSize(7);col(MUT);[['DATE',L],['TIME',55],['HOURS',80],['TAGS',98],['NOTE',130]].forEach(h=>doc.text(h[0],h[1],yy));doc.text('PREMIUM',R,yy,{align:'right'});yy+=2;doc.setDrawColor(...INK);doc.setLineWidth(.4);doc.line(L,yy,R,yy);yy+=6};
+  hdr();
+  [...T.ms].sort((a,b)=>sortKey(b)-sortKey(a)).forEach(s=>{
+    if(yy>245){doc.addPage();yy=20;hdr()}
+    doc.setFontSize(8.5);doc.setFont('helvetica','bold');col(INK);doc.text(fmtDate(s.date),L,yy);
+    doc.setFont('helvetica','normal');doc.text(s.kind==='sick'?'Sick day':s.start+' - '+s.end,55,yy);
+    doc.setFont('helvetica','bold');doc.text(fmtH(s.hours)+' h',80,yy);
+    let px=98;((s.tags&&s.tags.length)?s.tags:['Day']).forEach(t=>{const k=tagCls(t),c=PILL[k]||PILL.Day,lb=tagLbl(t);doc.setFontSize(6.5);const w=doc.getTextWidth(lb)+4.5;
+      doc.setFillColor(...c[1]);doc.roundedRect(px,yy-3.4,w,4.6,2.3,2.3,'F');doc.setTextColor(...c[0]);doc.text(lb,px+2.25,yy-.2);px+=w+1.5});
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);col(MUT);doc.text(s.kind==='sick'?'-':(s.notes||'-').slice(0,26),130,yy);
+    doc.setFont('helvetica','bold');col(INK);doc.text(plain('+'+fmtEur(s.extra)),R,yy,{align:'right'});
+    yy+=2.5;doc.setDrawColor(...LINE);doc.setLineWidth(.2);doc.line(L,yy,R,yy);yy+=5.5});
+  if(!T.ms.length){doc.setFont('helvetica','normal');col(MUT);doc.text('No shifts this month.',L,yy)}
+  // bottom block
+  yy=Math.max(yy+8,200);if(yy>250){doc.addPage();yy=20}
+  doc.setFont('helvetica','bold');doc.setFontSize(10);col(INK);doc.text('Salary breakdown',L,yy);
+  const rows=[['Guaranteed base (80 h)',fmtEur(BASE_SALARY)],['Overtime',fmtEur(T.ot)],['Evening +15 %',fmtEur(T.prem.eve)],['Night +40 %',fmtEur(T.prem.night)],['Saturday +20 %',fmtEur(T.prem.sat)],['Sunday / holiday +100 %',fmtEur(T.prem.sun)]];
+  let ry=yy+7;doc.setFontSize(8.5);
+  rows.forEach(r=>{doc.setFont('helvetica','normal');col(MUT);doc.text(r[0],L,ry);doc.setFont('helvetica','bold');col(INK);doc.text(plain(r[1]),L+78,ry,{align:'right'});ry+=2;doc.setDrawColor(...LINE);doc.line(L,ry,L+78,ry);ry+=5});
+  doc.setDrawColor(...INK);doc.setLineWidth(.4);doc.line(L,ry-3,L+78,ry-3);
+  doc.setFontSize(9);doc.text('Salary total',L,ry+2);doc.text(plain(fmtEur(T.total)),L+78,ry+2,{align:'right'});
+  const px2=L+100;doc.setFontSize(10);doc.text('Payment status',px2,yy);
+  doc.setFontSize(8.5);doc.setFont('helvetica','normal');col(MUT);doc.text('Salary',px2,yy+7);
+  doc.setFont('helvetica','bold');col(INK);doc.text(paid[month+':salary']?'Paid':'Open',R,yy+7,{align:'right'});
+  doc.setDrawColor(...LINE);doc.setLineWidth(.2);doc.line(px2,yy+9,R,yy+9);
+  // footer
+  doc.setDrawColor(...INK);doc.setLineWidth(.4);doc.line(L,274,R,274);
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.text('Pay to',L,279);
+  doc.setFont('helvetica','normal');col(MUT);
+  const pt=[pd&&pd.account_holder,pd&&pd.iban&&('IBAN '+pd.iban),pd&&pd.mobilepay&&('MobilePay '+pd.mobilepay)].filter(Boolean).join('  -  ');
+  if(pt)doc.text(pt,L,283);
+  const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(7.5);col(MUT);doc.text(`Page ${i} / ${n}`,R,279,{align:'right'})}
   doc.save(`mairemi-report-${month}.pdf`)}
 
 // ---- startup ----

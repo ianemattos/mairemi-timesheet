@@ -9,6 +9,7 @@
 <title>Mairemi Care Timesheet</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
 :root{--ink:#1E2A24;--muted:#5B6A62;--acc:#2F6B57;--line:rgba(60,90,140,.14);--glass:rgba(255,255,255,.58);--glass-b:rgba(255,255,255,.8);--shadow:0 10px 30px rgba(35,70,140,.12),inset 0 1px 0 rgba(255,255,255,.9)}
@@ -152,7 +153,7 @@ body.locked #app,body.locked #actions{display:none!important}
     <div class="brand">Mairemi Care</div>
     <button class="nav on" data-v="overview" onclick="showView('overview')">Overview</button>
     <button class="nav" data-v="shifts" onclick="showView('shifts')"><span>Shifts<span class="nbadge hidden"></span></span></button>
-    <button class="nav" data-v="receipts" onclick="showView('receipts')">Receipts<span class="soon">SOON</span></button>
+    <button class="nav" data-v="receipts" onclick="showView('receipts')">Receipts</button>
     <button class="nav" data-v="payments" onclick="showView('payments')">Payments</button>
   </aside>
   <main>
@@ -208,8 +209,15 @@ body.locked #app,body.locked #actions{display:none!important}
             <div class="field"><label>MobilePay number</label><input id="pd-mp" inputmode="tel"></div><button class="btn" onclick="savePD()">Save</button></div></div></div>
     </section>
 
-    <section id="v-receipts" class="view hidden"><div class="hdr"><div><h1>Receipts</h1><div class="sub">Coming soon.</div></div></div>
-      <div class="glass card" style="text-align:center;color:var(--muted);padding:40px 20px">Receipts will be logged and paid by MobilePay here.</div></section>
+    <section id="v-receipts" class="view hidden">
+      <div class="hdr"><div><h1>Receipts</h1><div class="sub" id="r-sub"></div></div><div class="hdr-r"><button class="pbtn iane-only" onclick="openRSheet()">Add receipt</button><div class="who desk"><span class="av who-av"></span><span class="nm who-nm"></span></div></div></div>
+      <div class="stack">
+        <div class="glass card hidden" id="r-hint" style="font-size:13px"></div>
+        <div class="glass card"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:700">Open log</div><div id="r-total" style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums"></div></div>
+          <div id="r-list"></div>
+          <div id="r-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"></div></div>
+        <div class="glass card hidden" id="r-arch"></div>
+      </div></section>
   </main>
 </div>
 
@@ -228,6 +236,19 @@ body.locked #app,body.locked #actions{display:none!important}
   <div class="field"><label>Notes</label><input id="i-notes" placeholder="Optional"></div>
   <button class="btn" id="sheet-save" onclick="saveManual()">Save shift</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>
 </div></div>
+<div class="overlay" id="rsheet" onclick="if(event.target===this)closeRSheet()"><div class="glass sheet" style="max-height:92vh;overflow:auto">
+  <div style="font-size:17px;font-weight:700" id="rsheet-title">Add receipt</div>
+  <div class="field"><label>For</label><div class="pill" style="align-self:flex-start"><span class="seg rforbtn on" data-w="Maire & Remi" onclick="setRFor('Maire & Remi')">Maire &amp; Remi</span><span class="seg rforbtn" data-w="Iane" onclick="setRFor('Iane')">Iane</span></div></div>
+  <div class="field"><label>Meal</label><div class="pill" style="align-self:flex-start"><span class="seg rmealbtn" data-w="Lunch" onclick="setRMeal('Lunch')">Lunch</span><span class="seg rmealbtn on" data-w="Snack" onclick="setRMeal('Snack')">Snack</span><span class="seg rmealbtn" data-w="Dinner" onclick="setRMeal('Dinner')">Dinner</span><span class="seg rmealbtn" data-w="Coffee" onclick="setRMeal('Coffee')">Coffee</span></div></div>
+  <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Date</label><input id="r-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10" autocomplete="off"></div>
+    <div class="field" style="flex:1"><label>Time</label><input id="r-time" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div></div>
+  <div class="field"><label>Place</label><input id="r-place" placeholder="e.g. Oodi, S market Bulevardi" autocomplete="off"></div>
+  <div class="field"><label>Amount (€)</label><input id="r-amount" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+  <div class="field"><label>Note</label><input id="r-note" placeholder="Optional" autocomplete="off"></div>
+  <div class="field"><label>Photo</label><input type="file" id="r-photo" accept="image/*" style="font-size:14px"><div class="hint" id="r-photo-hint"></div></div>
+  <button class="btn" onclick="saveReceipt()">Save receipt</button><button class="btn ghost hidden" id="r-del" style="color:#B3463A" onclick="deleteReceipt()">Delete receipt</button><button class="btn ghost" onclick="closeRSheet()">Cancel</button>
+</div></div>
+<div class="overlay" id="lb" onclick="this.classList.remove('open')" style="align-items:center"><img id="lb-img" alt="Receipt photo" style="max-width:100%;max-height:88vh;border-radius:14px;background:#fff"></div>
 <style>.seg{padding:5px 12px;border-radius:999px;color:var(--muted);cursor:pointer}.seg.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}.iane-hide{display:none!important}</style>
 
 <script>
@@ -258,7 +279,7 @@ function parseTime(s){const m=/^(\d{2}):(\d{2})$/.exec(s.trim());return(m&&+m[1]
 // Contract rule: start rounds down, end rounds up, to 15 minutes
 function roundHM(str,dir){const[h,m]=str.split(':').map(Number);let t=h*60+m;t=dir==='down'?Math.floor(t/15)*15:Math.ceil(t/15)*15;t%=1440;return `${pad2(Math.floor(t/60))}:${pad2(t%60)}`}
 
-let me=IS_VIEWER?'Mika':'Iane',requests=[],forWho='Mika',editId=null,shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null;
+let me=IS_VIEWER?'Mika':'Iane',requests=[],forWho='Mika',editId=null,shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null,receipts=[],rEditId=null,rEditPhoto=null,rMeal='Snack',rFor='Maire & Remi';
 
 const rowToShift=r=>{const e=+r.eve_bonus,n=+r.night_bonus,s=+r.sat_bonus,u=+r.sun_bonus;
   return{id:r.id,household:r.household||'',kind:r.kind,date:r.work_date,start:r.start_time?String(r.start_time).slice(0,5):'-',end:r.end_time?String(r.end_time).slice(0,5):'-',notes:r.notes||'',hours:+r.total_hours,extra:e+n+s+u,tags:r.tags||[],bd:{eve:e,night:n,sat:s,sun:u}}};
@@ -276,7 +297,9 @@ function setSync(m){const el=document.getElementById('syncmsg');el.innerText=m;e
 async function loadAll(){
   const q=IS_VIEWER?[sb.rpc('viewer_shifts',{p_token:TOKEN}),sb.rpc('viewer_paid_months',{p_token:TOKEN}),sb.rpc('viewer_payment_details',{p_token:TOKEN}),sb.rpc('viewer_requests',{p_token:TOKEN})]
     :[sb.from('shifts').select('*'),sb.from('paid_months').select('*'),sb.from('payment_details').select('*').maybeSingle(),sb.from('shift_requests').select('*').order('work_date')];
-  const[a,b,c,rq]=await Promise.all(q);
+  q.push(IS_VIEWER?sb.rpc('viewer_receipts',{p_token:TOKEN}):sb.from('receipts').select('*').order('receipt_date').order('receipt_time'));
+  const[a,b,c,rq,rc]=await Promise.all(q);
+  receipts=(rc&&!rc.error&&Array.isArray(rc.data))?rc.data.map(r=>({...r,amount:+r.amount,receipt_time:String(r.receipt_time||'').slice(0,5)})).sort((x,y)=>(x.receipt_date+x.receipt_time).localeCompare(y.receipt_date+y.receipt_time)):[];
   requests=(rq&&!rq.error&&Array.isArray(rq.data))?rq.data.map(r=>({...r,start_time:String(r.start_time).slice(0,5),end_time:String(r.end_time).slice(0,5)})):[];
   if(a.error){setSync('Could not load data. Check your internet connection.');return false}
   if(b.error||c.error)setSync('Payments data: '+(b.error||c.error).message);else setSync('');
@@ -539,6 +562,103 @@ function renderRequests(){
     const act=r.status==='cancelled'?(IS_VIEWER?'':`<button class="pbtn" onclick="dismissReq('${r.id}')">OK</button>`):r.status!=='requested'?'':IS_VIEWER?(r.household===me?`<button class="link red" onclick="cancelRequest('${r.id}')">Cancel</button>`:''):`<button class="pbtn" onclick="acceptRequest('${r.id}')">Accept</button><button class="link red" onclick="declineRequest('${r.id}')">Decline</button>`;
     return `<div class="reqrow"><div class="n"><b>${esc(r.household)} · ${fmtDate(r.work_date)}</b><div>${esc(r.start_time)} – ${esc(r.end_time)}${r.note?' · '+esc(r.note):''}</div></div>${chip}${act}</div>`}).join('')}
 
+const openR=()=>receipts.filter(r=>!r.paid_at);
+const rSum=a=>a.reduce((t,r)=>t+r.amount,0);
+const setRFor=w=>{rFor=w;document.querySelectorAll('.rforbtn').forEach(b=>b.classList.toggle('on',b.dataset.w===w))};
+const setRMeal=w=>{rMeal=w;document.querySelectorAll('.rmealbtn').forEach(b=>b.classList.toggle('on',b.dataset.w===w))};
+const rv=id=>document.getElementById(id).value;
+function suggestMeal(t){const h=+t.slice(0,2)+(+t.slice(3,5))/60;return h>=10.5&&h<14?'Lunch':h>=14&&h<17?'Snack':h>=17?'Dinner':'Coffee'}
+function rRow(r,n,canEdit){
+  const photo=r.photo_path?`<button class="link" onclick="event.stopPropagation();showPhoto('${esc(r.photo_path)}')">Photo</button>`:'';
+  return `<div class="reqrow"${canEdit?` style="cursor:pointer" onclick="openRSheet('${r.id}')"`:''}><div class="n"><b>${n}. ${esc(r.place)}</b><div>${fmtDate(r.receipt_date)} ${esc(r.receipt_time)} · ${esc(r.meal)} · ${esc(r.for_who)}${r.note?' · '+esc(r.note):''}</div></div><span style="font-weight:700;font-variant-numeric:tabular-nums">${fmtEur(r.amount)}</span>${photo}</div>`}
+function mpNote(list){
+  const days={};list.forEach(r=>(days[r.receipt_date]=days[r.receipt_date]||[]).push(r));
+  return Object.keys(days).sort().map(d=>{
+    const g={};days[d].forEach(r=>{const w=r.for_who==='Iane'?'Iane':'Mairemi';(g[w]=g[w]||new Set()).add(r.meal.toLowerCase())});
+    const parts=['Mairemi','Iane'].filter(w=>g[w]).map(w=>{const m=g[w];if(w==='Iane'&&m.has('lunch')&&m.has('snack'))m.delete('snack');return w+' '+[...m].join('+')});
+    return `${WD[new Date(d+'T00:00').getDay()]} ${d.slice(8)}.${d.slice(5,7)} ${parts.join(', ')}`}).join('; ')}
+function copyNote(b){copy(mpNote(openR()),b)}
+function renderReceipts(){
+  const o=openR(),t=rSum(o);
+  document.getElementById('r-sub').innerText=IS_VIEWER?'Food and small items Iane buys for the children.':'Log of what you bought, until it is paid.';
+  document.getElementById('r-total').innerText=fmtEur(t);
+  document.getElementById('r-list').innerHTML=o.length?o.map((r,i)=>rRow(r,i+1,!IS_VIEWER)).join(''):'<div style="color:var(--muted);font-size:13px;padding:14px 0">No open receipts.</div>';
+  let act='';
+  if(!IS_VIEWER&&o.length)act+=`<button class="pbtn" onclick="copyNote(this)">Copy MobilePay note</button>`;
+  if(o.some(r=>r.photo_path))act+=`<button class="pbtn" onclick="photosZip()">Photos (zip)</button>`;
+  if(IS_VIEWER&&me==='Mika'&&o.length)act+=`<button class="pbtn" onclick="markReceiptsPaid()">Mark paid</button>`;
+  document.getElementById('r-actions').innerHTML=act;
+  // reminders (Iane only)
+  const h=document.getElementById('r-hint');let msg='';
+  if(!IS_VIEWER){const today=localDate(new Date()),dt=new Date();const last=o.length?o[o.length-1].receipt_date:null;
+    const lastDay=new Date(dt.getFullYear(),dt.getMonth()+1,0).getDate()===dt.getDate();
+    if(t>=50)msg='The open total is over 50 €. Time to request it by MobilePay.';
+    else if(lastDay&&o.length)msg='Month end: remember to submit the receipts.';
+    else if(!last||(new Date(today+'T00:00')-new Date(last+'T00:00'))/864e5>=3)msg='Nothing logged for 3 days. Add receipts if you have any.'}
+  h.innerText=msg;h.classList.toggle('hidden',!msg);
+  // archive
+  const batches={};receipts.filter(r=>r.paid_at).forEach(r=>(batches[r.paid_at]=batches[r.paid_at]||[]).push(r));
+  const keys=Object.keys(batches).sort().reverse(),ar=document.getElementById('r-arch');
+  ar.classList.toggle('hidden',!keys.length);
+  ar.innerHTML=keys.length?`<div style="font-size:15px;font-weight:700;margin-bottom:6px">Paid</div>`+keys.map(k=>{const b=batches[k];
+    return `<details style="padding:8px 0;border-top:1px solid var(--line)"><summary style="cursor:pointer;font-size:14px;font-weight:600">Paid ${isoDisp(localDate(new Date(k)))} · ${b.length} ${b.length===1?"receipt":"receipts"} · ${fmtEur(rSum(b))}</summary><div>${b.map((r,i)=>rRow(r,i+1,false)).join('')}${IS_VIEWER?'':`<button class="link red" style="margin-top:6px" onclick="undoReceiptsPaid('${k}')">Undo</button>`}</div></details>`}).join(''):''}
+async function markReceiptsPaid(){
+  const o=openR();if(busy||!IS_VIEWER||!o.length||!confirm('Mark '+o.length+' receipts ('+fmtEur(rSum(o))+') as paid?'))return;busy=true;
+  try{const{error}=await sb.rpc('mark_receipts_paid',{p_token:TOKEN});if(error){alert('Could not save: '+error.message);return}await loadAll()}finally{busy=false}}
+async function undoReceiptsPaid(k){
+  if(IS_VIEWER||busy||!confirm('Move this paid batch back to the open log?'))return;busy=true;
+  try{const{data,error}=await sb.from('receipts').update({paid_at:null}).eq('paid_at',k).select();
+    if(error){alert('Could not undo: '+error.message);return}
+    if(!data||!data.length){alert('Nothing was changed. Reload and try again.');return}await loadAll()}finally{busy=false}}
+function openRSheet(id){
+  const r=id?receipts.find(x=>x.id===id):null;rEditId=r?r.id:null;rEditPhoto=r?r.photo_path:null;
+  document.getElementById('rsheet-title').innerText=r?'Edit receipt':'Add receipt';
+  const now=new Date(),tm=pad2(now.getHours())+':'+pad2(now.getMinutes());
+  document.getElementById('r-date').value=isoDisp(r?r.receipt_date:localDate(now));
+  document.getElementById('r-time').value=r?r.receipt_time:tm;
+  document.getElementById('r-place').value=r?r.place:'';
+  document.getElementById('r-amount').value=r?String(r.amount).replace('.',','):'';
+  document.getElementById('r-note').value=r&&r.note?r.note:'';
+  document.getElementById('r-photo').value='';
+  document.getElementById('r-photo-hint').innerText=r&&r.photo_path?'A photo is attached. Choose a new one to replace it.':'';
+  setRFor(r?r.for_who:'Maire & Remi');setRMeal(r?r.meal:suggestMeal(tm));
+  document.getElementById('r-del').classList.toggle('hidden',!r);
+  document.getElementById('rsheet').classList.add('open')}
+function closeRSheet(){rEditId=null;document.getElementById('rsheet').classList.remove('open')}
+async function saveReceipt(){
+  if(busy)return;
+  const d=parseDate(rv('r-date')),t=rv('r-time'),place=rv('r-place').trim(),amt=parseFloat(rv('r-amount').replace(',','.')),note=rv('r-note').trim(),f=document.getElementById('r-photo').files[0];
+  if(!d){alert('Check the date.');return}
+  if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)){alert('Check the time (24 h, hh:mm).');return}
+  if(!place){alert('Add a place.');return}
+  if(!isFinite(amt)||amt<=0){alert('Check the amount.');return}
+  busy=true;
+  try{const id=rEditId||crypto.randomUUID();let path=rEditPhoto;
+    if(f){const ext=((f.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,''))||'jpg';const np=id+'-'+Date.now()+'.'+ext;
+      const up=await sb.storage.from('receipts').upload(np,f,{contentType:f.type||'image/jpeg'});
+      if(up.error){alert('Photo upload failed: '+up.error.message);return}path=np}
+    const row={receipt_date:d,receipt_time:t,place,meal:rMeal,for_who:rFor,amount:amt,note:note||null,photo_path:path||null};
+    const{error}=rEditId?await sb.from('receipts').update(row).eq('id',id):await sb.from('receipts').insert({id,...row});
+    if(error){alert('Could not save: '+error.message);return}
+    if(f&&rEditPhoto)sb.storage.from('receipts').remove([rEditPhoto]);
+    closeRSheet();await loadAll()}catch(e){alert('Save failed: '+e.message)}finally{busy=false}}
+async function deleteReceipt(){
+  if(busy||!rEditId||!confirm('Delete this receipt?'))return;busy=true;
+  try{const{error}=await sb.from('receipts').delete().eq('id',rEditId);if(error){alert('Could not delete: '+error.message);return}
+    if(rEditPhoto)sb.storage.from('receipts').remove([rEditPhoto]);closeRSheet();await loadAll()}finally{busy=false}}
+async function showPhoto(p){
+  document.getElementById('lb-img').src=sb.storage.from('receipts').getPublicUrl(p).data.publicUrl;document.getElementById('lb').classList.add('open')}
+async function photosZip(){
+  const list=openR().map((r,i)=>({r,n:i+1})).filter(x=>x.r.photo_path);
+  if(busy)return;if(!list.length){alert('No photos in the open log.');return}
+  if(!window.JSZip){alert('Zip library did not load. Check your connection and reload.');return}
+  busy=true;setSync('Preparing zip...');
+  try{const zip=new JSZip();
+    for(const{r,n}of list){const resp=await fetch(sb.storage.from('receipts').getPublicUrl(r.photo_path).data.publicUrl);if(!resp.ok)throw new Error('Photo '+n+' could not be loaded');const data=await resp.blob();
+      const ext=r.photo_path.split('.').pop();zip.file(`${n}_${r.receipt_date}_${r.receipt_time.replace(':','')}_${r.place.replace(/[^A-Za-z0-9ÅÄÖåäö]+/g,'-')}.${ext}`,data)}
+    const blob=await zip.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='receipts.zip';document.body.appendChild(a);a.click();a.remove();
+    setSync('')}catch(e){setSync('');alert('Zip failed: '+(e.message||e))}finally{busy=false}}
+
 function renderPayments(){
   document.getElementById('pay-months').innerHTML=allMonths().map(m=>{
     const T=totals(m),isPaid=!!paid[m+':salary'];
@@ -547,12 +667,14 @@ function renderPayments(){
     else act=(IS_VIEWER&&me==='Mika')?`<button class="pbtn" onclick="markPaid('${m}')">Mark paid</button>`:`<span class="chip open">Open</span>`;
     return `<div class="glass card"><div class="mhead"><div><b>${monthName(m)}</b> <span class="chip ${isPaid?'ok':'open'}" style="margin-left:8px">${isPaid?'All paid':'Open'}</span></div><span class="tot">${fmtEur(T.total)}</span></div>
       <div class="mrow"><div class="n"><b>Salary</b><div>Through payroll</div></div><span class="a">${fmtEur(T.total)}</span><div class="s">${act}</div></div>
-      <div class="mrow"><div class="n"><b>Receipts</b><div>Coming soon</div></div><div class="s"><span class="chip soon">SOON</span></div></div></div>`}).join('');
+</div>`}).join('');
+  const oR=openR(),rAct=(IS_VIEWER&&me==='Mika'&&oR.length)?`<button class="pbtn" onclick="markReceiptsPaid()">Mark paid</button>`:(oR.length?'<span class="chip open">Open</span>':'<span class="chip ok">All paid</span>');
+  document.getElementById('pay-months').insertAdjacentHTML('afterbegin',`<div class="glass card"><div class="mrow" style="border-top:none;padding:0"><div class="n"><b>Receipts</b><div>${oR.length?oR.length+' open, by MobilePay':'Nothing open'}</div></div><span class="a">${fmtEur(rSum(oR))}</span><div class="s">${rAct}</div></div></div>`);
   const rows=[['Account holder',pd&&pd.account_holder],['IBAN',pd&&pd.iban],['MobilePay',pd&&pd.mobilepay]].filter(r=>r[1]);
   document.getElementById('pd-rows').innerHTML=rows.length?rows.map(r=>`<div class="copyr"><div style="flex:1;min-width:0"><div class="k">${r[0]}</div><div class="v">${esc(r[1])}</div></div><button class="copy" onclick="copy(${JSON.stringify(String(r[1])).replace(/"/g,'&quot;')},this)">Copy</button></div>`).join(''):'<div class="sub" style="padding:14px 0;text-align:center">No payment details yet.</div>';
   if(pd){document.getElementById('pd-name').value=pd.account_holder||'';document.getElementById('pd-iban').value=pd.iban||'';document.getElementById('pd-mp').value=pd.mobilepay||''}}
 
-function renderAll(){renderMonthSelects();renderOverview();renderShifts();renderPayments()}
+function renderAll(){renderMonthSelects();renderOverview();renderShifts();renderPayments();renderReceipts()}
 
 function plain(s){return String(s).replace(/[  ]/g,' ')}
 function reportPdf(){
@@ -630,7 +752,7 @@ async function startApp(){
   document.getElementById('i-date').value=isoDisp(localDate(new Date()));
   await Promise.all([loadAll(),loadActive(),loadCal()])}
 async function boot(){
-  [['i-date','date'],['i-start','time'],['i-end','time']].forEach(([id,k])=>{const el=document.getElementById(id);
+  [['i-date','date'],['i-start','time'],['i-end','time'],['r-date','date'],['r-time','time']].forEach(([id,k])=>{const el=document.getElementById(id);
     el.addEventListener('input',e=>{const t=e.target,pos=t.selectionStart;const before=t.value.slice(0,pos).replace(/\D/g,'').length;
       t.value=digits(t.value,k);let n=0,np=t.value.length;if(before===0)np=0;else for(let i=0;i<t.value.length;i++){if(/\d/.test(t.value[i]))n++;if(n===before){np=i+1;break}}
       t.setSelectionRange(np,np)});

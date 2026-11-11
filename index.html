@@ -210,7 +210,7 @@ body.locked #app,body.locked #actions{display:none!important}
     </section>
 
     <section id="v-receipts" class="view hidden">
-      <div class="hdr"><div><h1>Receipts</h1><div class="sub" id="r-sub"></div></div><div class="hdr-r"><button class="pbtn iane-only" onclick="openRSheet()">Add receipt</button><div class="who desk"><span class="av who-av"></span><span class="nm who-nm"></span></div></div></div>
+      <div class="hdr"><div><h1>Receipts</h1><div class="sub" id="r-sub"></div></div><div class="hdr-r"><button class="pbtn iane-only" onclick="openISheet()">Paste log</button><button class="pbtn iane-only" onclick="openRSheet()">Add receipt</button><div class="who desk"><span class="av who-av"></span><span class="nm who-nm"></span></div></div></div>
       <div class="stack">
         <div class="glass card hidden" id="r-hint" style="font-size:13px"></div>
         <div class="glass card"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:700">Open log</div><div id="r-total" style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums"></div></div>
@@ -238,8 +238,9 @@ body.locked #app,body.locked #actions{display:none!important}
 </div></div>
 <div class="overlay" id="rsheet" onclick="if(event.target===this)closeRSheet()"><div class="glass sheet" style="max-height:92vh;overflow:auto">
   <div style="font-size:17px;font-weight:700" id="rsheet-title">Add receipt</div>
-  <div class="field"><label>For</label><div class="pill" style="align-self:flex-start"><span class="seg rforbtn on" data-w="Maire & Remi" onclick="setRFor('Maire & Remi')">Maire &amp; Remi</span><span class="seg rforbtn" data-w="Iane" onclick="setRFor('Iane')">Iane</span></div></div>
-  <div class="field"><label>Meal</label><div class="pill" style="align-self:flex-start"><span class="seg rmealbtn" data-w="Lunch" onclick="setRMeal('Lunch')">Lunch</span><span class="seg rmealbtn on" data-w="Snack" onclick="setRMeal('Snack')">Snack</span><span class="seg rmealbtn" data-w="Dinner" onclick="setRMeal('Dinner')">Dinner</span><span class="seg rmealbtn" data-w="Coffee" onclick="setRMeal('Coffee')">Coffee</span></div></div>
+  <div class="field"><label>For</label><div class="pill" style="align-self:flex-start"><span class="seg rforbtn on" data-w="Maire & Remi" onclick="setRFor('Maire & Remi')">Maire &amp; Remi</span><span class="seg rforbtn" data-w="Iane" onclick="setRFor('Iane')">Iane</span><span class="seg rforbtn" data-w="Split" onclick="setRFor('Split')">Split</span></div></div>
+  <div class="field hidden" id="r-iane-f"><label>Iane's share (€), the rest is Maire &amp; Remi</label><input id="r-iane" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+  <div class="field"><label>Meal (pick one or more)</label><div class="pill" style="align-self:flex-start"><span class="seg rmealbtn" data-w="Lunch" onclick="toggleMeal('Lunch')">Lunch</span><span class="seg rmealbtn on" data-w="Snack" onclick="toggleMeal('Snack')">Snack</span><span class="seg rmealbtn" data-w="Dinner" onclick="toggleMeal('Dinner')">Dinner</span><span class="seg rmealbtn" data-w="Coffee" onclick="toggleMeal('Coffee')">Coffee</span></div></div>
   <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Date</label><input id="r-date" inputmode="numeric" placeholder="dd.mm.yyyy" maxlength="10" autocomplete="off"></div>
     <div class="field" style="flex:1"><label>Time</label><input id="r-time" inputmode="numeric" placeholder="hh:mm" maxlength="5" autocomplete="off"></div></div>
   <div class="field"><label>Place</label><input id="r-place" placeholder="e.g. Oodi, S market Bulevardi" autocomplete="off"></div>
@@ -247,6 +248,12 @@ body.locked #app,body.locked #actions{display:none!important}
   <div class="field"><label>Note</label><input id="r-note" placeholder="Optional" autocomplete="off"></div>
   <div class="field"><label>Photo</label><input type="file" id="r-photo" accept="image/*" style="font-size:14px"><div class="hint" id="r-photo-hint"></div></div>
   <button class="btn" onclick="saveReceipt()">Save receipt</button><button class="btn ghost hidden" id="r-del" style="color:#B3463A" onclick="deleteReceipt()">Delete receipt</button><button class="btn ghost" onclick="closeRSheet()">Cancel</button>
+</div></div>
+<div class="overlay" id="isheet" onclick="if(event.target===this)closeISheet()"><div class="glass sheet" style="max-height:92vh;overflow:auto">
+  <div style="font-size:17px;font-weight:700">Paste receipt log</div>
+  <div class="hint">Paste the table from your tracking chat. Receipts already in the app are skipped, so pasting the whole log again is safe.</div>
+  <textarea id="i-log" rows="9" placeholder="#  Date  Day  Time  Place  Total  Items  Category  For" style="width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font-size:14px;background:rgba(255,255,255,.9);color:var(--ink);font-family:inherit"></textarea>
+  <button class="btn" onclick="importLog()">Import</button><button class="btn ghost" onclick="closeISheet()">Cancel</button>
 </div></div>
 <div class="overlay" id="lb" onclick="this.classList.remove('open')" style="align-items:center"><img id="lb-img" alt="Receipt photo" style="max-width:100%;max-height:88vh;border-radius:14px;background:#fff"></div>
 <style>.seg{padding:5px 12px;border-radius:999px;color:var(--muted);cursor:pointer}.seg.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}.iane-hide{display:none!important}</style>
@@ -279,7 +286,7 @@ function parseTime(s){const m=/^(\d{2}):(\d{2})$/.exec(s.trim());return(m&&+m[1]
 // Contract rule: start rounds down, end rounds up, to 15 minutes
 function roundHM(str,dir){const[h,m]=str.split(':').map(Number);let t=h*60+m;t=dir==='down'?Math.floor(t/15)*15:Math.ceil(t/15)*15;t%=1440;return `${pad2(Math.floor(t/60))}:${pad2(t%60)}`}
 
-let me=IS_VIEWER?'Mika':'Iane',requests=[],forWho='Mika',editId=null,shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null,receipts=[],rEditId=null,rEditPhoto=null,rMeal='Snack',rFor='Maire & Remi';
+let me=IS_VIEWER?'Mika':'Iane',requests=[],forWho='Mika',editId=null,shifts=[],paid={},pd=null,activeStart=null,month=localDate(new Date()).slice(0,7),busy=false,view='overview',selDay=null,mode='cal',calUrl=null,receipts=[],rEditId=null,rEditPhoto=null,rMeals=new Set(['Snack']),rFor='Maire & Remi';
 
 const rowToShift=r=>{const e=+r.eve_bonus,n=+r.night_bonus,s=+r.sat_bonus,u=+r.sun_bonus;
   return{id:r.id,household:r.household||'',kind:r.kind,date:r.work_date,start:r.start_time?String(r.start_time).slice(0,5):'-',end:r.end_time?String(r.end_time).slice(0,5):'-',notes:r.notes||'',hours:+r.total_hours,extra:e+n+s+u,tags:r.tags||[],bd:{eve:e,night:n,sat:s,sun:u}}};
@@ -299,7 +306,7 @@ async function loadAll(){
     :[sb.from('shifts').select('*'),sb.from('paid_months').select('*'),sb.from('payment_details').select('*').maybeSingle(),sb.from('shift_requests').select('*').order('work_date')];
   q.push(IS_VIEWER?sb.rpc('viewer_receipts',{p_token:TOKEN}):sb.from('receipts').select('*').order('receipt_date').order('receipt_time'));
   const[a,b,c,rq,rc]=await Promise.all(q);
-  receipts=(rc&&!rc.error&&Array.isArray(rc.data))?rc.data.map(r=>({...r,amount:+r.amount,receipt_time:String(r.receipt_time||'').slice(0,5)})).sort((x,y)=>(x.receipt_date+x.receipt_time).localeCompare(y.receipt_date+y.receipt_time)):[];
+  receipts=(rc&&!rc.error&&Array.isArray(rc.data))?rc.data.map(r=>({...r,amount:+r.amount,iane_amount:r.iane_amount==null?null:+r.iane_amount,receipt_time:String(r.receipt_time||'').slice(0,5)})).sort((x,y)=>(x.receipt_date+x.receipt_time).localeCompare(y.receipt_date+y.receipt_time)):[];
   requests=(rq&&!rq.error&&Array.isArray(rq.data))?rq.data.map(r=>({...r,start_time:String(r.start_time).slice(0,5),end_time:String(r.end_time).slice(0,5)})):[];
   if(a.error){setSync('Could not load data. Check your internet connection.');return false}
   if(b.error||c.error)setSync('Payments data: '+(b.error||c.error).message);else setSync('');
@@ -564,17 +571,25 @@ function renderRequests(){
 
 const openR=()=>receipts.filter(r=>!r.paid_at);
 const rSum=a=>a.reduce((t,r)=>t+r.amount,0);
-const setRFor=w=>{rFor=w;document.querySelectorAll('.rforbtn').forEach(b=>b.classList.toggle('on',b.dataset.w===w))};
-const setRMeal=w=>{rMeal=w;document.querySelectorAll('.rmealbtn').forEach(b=>b.classList.toggle('on',b.dataset.w===w))};
+const setRFor=w=>{rFor=w;document.querySelectorAll('.rforbtn').forEach(b=>b.classList.toggle('on',b.dataset.w===w));document.getElementById('r-iane-f').classList.toggle('hidden',w!=='Split')};
+const MEALS=['Coffee','Lunch','Dinner','Snack'];
+const paintMeals=()=>document.querySelectorAll('.rmealbtn').forEach(b=>b.classList.toggle('on',rMeals.has(b.dataset.w)));
+const toggleMeal=w=>{if(rMeals.has(w)){if(rMeals.size>1)rMeals.delete(w)}else rMeals.add(w);paintMeals()};
+const setMeals=a=>{rMeals=new Set(a);paintMeals()};
+const mealStr=()=>MEALS.filter(m=>rMeals.has(m)).map((m,i)=>i?m.toLowerCase():m).join(' + ');
+const parseMeals=s=>MEALS.filter(m=>String(s).toLowerCase().includes(m.toLowerCase()));
+const fmtN=n=>n.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+const forText=r=>r.for_who==='Split'?`Iane ${fmtN(r.iane_amount)}, Maire & Remi ${fmtN(r.amount-r.iane_amount)}`:r.for_who;
 const rv=id=>document.getElementById(id).value;
-function suggestMeal(t){const h=+t.slice(0,2)+(+t.slice(3,5))/60;return h>=10.5&&h<14?'Lunch':h>=14&&h<17?'Snack':h>=17?'Dinner':'Coffee'}
+function suggestMeal(t){const h=+t.slice(0,2)+(+t.slice(3,5))/60;return h>=10.5&&h<14?['Lunch']:h>=14&&h<17?['Snack']:h>=17?['Dinner']:['Coffee']}
 function rRow(r,n,canEdit){
   const photo=r.photo_path?`<button class="link" onclick="event.stopPropagation();showPhoto('${esc(r.photo_path)}')">Photo</button>`:'';
-  return `<div class="reqrow"${canEdit?` style="cursor:pointer" onclick="openRSheet('${r.id}')"`:''}><div class="n"><b>${n}. ${esc(r.place)}</b><div>${fmtDate(r.receipt_date)} ${esc(r.receipt_time)} · ${esc(r.meal)} · ${esc(r.for_who)}${r.note?' · '+esc(r.note):''}</div></div><span style="font-weight:700;font-variant-numeric:tabular-nums">${fmtEur(r.amount)}</span>${photo}</div>`}
+  return `<div class="reqrow"${canEdit?` style="cursor:pointer" onclick="openRSheet('${r.id}')"`:''}><div class="n"><b>${n}. ${esc(r.place)}</b><div>${fmtDate(r.receipt_date)} ${esc(r.receipt_time)} · ${esc(r.meal)} · ${esc(forText(r))}${r.note?' · '+esc(r.note):''}</div></div><span style="font-weight:700;font-variant-numeric:tabular-nums">${fmtEur(r.amount)}</span>${photo}</div>`}
 function mpNote(list){
   const days={};list.forEach(r=>(days[r.receipt_date]=days[r.receipt_date]||[]).push(r));
   return Object.keys(days).sort().map(d=>{
-    const g={};days[d].forEach(r=>{const w=r.for_who==='Iane'?'Iane':'Mairemi';(g[w]=g[w]||new Set()).add(r.meal.toLowerCase())});
+    const g={};days[d].forEach(r=>{const ms=r.meal.toLowerCase().split(' + ');const add=(w,a)=>{g[w]=g[w]||new Set();a.forEach(m=>g[w].add(m))};
+      if(r.for_who==='Split'){const c=ms.filter(m=>m==='coffee'),o=ms.filter(m=>m!=='coffee');add('Iane',c.length?c:ms);add('Mairemi',o.length?o:ms)}else add(r.for_who==='Iane'?'Iane':'Mairemi',ms)});
     const parts=['Mairemi','Iane'].filter(w=>g[w]).map(w=>{const m=g[w];if(w==='Iane'&&m.has('lunch')&&m.has('snack'))m.delete('snack');return w+' '+[...m].join('+')});
     return `${WD[new Date(d+'T00:00').getDay()]} ${d.slice(8)}.${d.slice(5,7)} ${parts.join(', ')}`}).join('; ')}
 function copyNote(b){copy(mpNote(openR()),b)}
@@ -610,6 +625,29 @@ async function undoReceiptsPaid(k){
   try{const{data,error}=await sb.from('receipts').update({paid_at:null}).eq('paid_at',k).select();
     if(error){alert('Could not undo: '+error.message);return}
     if(!data||!data.length){alert('Nothing was changed. Reload and try again.');return}await loadAll()}finally{busy=false}}
+function parseLog(text){
+  const out=[];
+  text.split(/\r?\n/).forEach(line=>{
+    const c=line.split(/\t|\|/).map(x=>x.trim());while(c.length&&c[0]==='')c.shift();while(c.length&&c[c.length-1]==='')c.pop();
+    if(c.length<9||!/^\d+$/.test(c[0]))return;
+    const d=parseDate(c[1]),tm=c[3].replace(/^(\d):/,'0$1:'),amt=parseFloat(c[5].replace(/[^\d,.]/g,'').replace(',','.'));
+    if(!d||!/^\d{2}:\d{2}$/.test(tm)||!isFinite(amt))return;
+    const meals=MEALS.filter(m=>c[7].toLowerCase().includes(m.toLowerCase()));
+    const ft=c[8],isI=/iane/i.test(ft),isM=/maire|remi/i.test(ft);let who='Maire & Remi',ia=null;
+    if(isI&&isM){const m=/iane\D*?(\d+[.,]\d{2})/i.exec(ft);if(m){who='Split';ia=parseFloat(m[1].replace(',','.'))}}else if(isI)who='Iane';
+    out.push({receipt_date:d,receipt_time:tm,place:c[4],meal:(meals.length?meals:['Snack']).map((m,i)=>i?m.toLowerCase():m).join(' + '),for_who:who,amount:amt,iane_amount:ia,note:c[6]||null})});
+  return out}
+function openISheet(){document.getElementById('i-log').value='';document.getElementById('isheet').classList.add('open')}
+function closeISheet(){document.getElementById('isheet').classList.remove('open')}
+async function importLog(){
+  if(busy)return;const rows=parseLog(document.getElementById('i-log').value);
+  if(!rows.length){alert('No receipts found. Paste the table with its rows (number, date, day, time, place, total, items, category, for).');return}
+  const key=r=>[r.receipt_date,r.receipt_time,r.place.toLowerCase(),(+r.amount).toFixed(2)].join('|');
+  const have=new Set(receipts.map(key)),fresh=rows.filter(r=>!have.has(key(r))),skipped=rows.length-fresh.length;
+  if(!fresh.length){alert('All '+rows.length+' receipts are already in the app.');return}
+  if(!confirm('Add '+fresh.length+' receipts ('+fmtEur(rSum(fresh))+')'+(skipped?', '+skipped+' already in the app':'')+'?'))return;
+  busy=true;
+  try{const{error}=await sb.from('receipts').insert(fresh);if(error){alert('Could not import: '+error.message);return}closeISheet();await loadAll()}finally{busy=false}}
 function openRSheet(id){
   const r=id?receipts.find(x=>x.id===id):null;rEditId=r?r.id:null;rEditPhoto=r?r.photo_path:null;
   document.getElementById('rsheet-title').innerText=r?'Edit receipt':'Add receipt';
@@ -621,7 +659,7 @@ function openRSheet(id){
   document.getElementById('r-note').value=r&&r.note?r.note:'';
   document.getElementById('r-photo').value='';
   document.getElementById('r-photo-hint').innerText=r&&r.photo_path?'A photo is attached. Choose a new one to replace it.':'';
-  setRFor(r?r.for_who:'Maire & Remi');setRMeal(r?r.meal:suggestMeal(tm));
+  document.getElementById('r-iane').value=r&&r.iane_amount!=null?String(r.iane_amount).replace('.',','):'';setRFor(r?r.for_who:'Maire & Remi');setMeals(r?parseMeals(r.meal):suggestMeal(tm));
   document.getElementById('r-del').classList.toggle('hidden',!r);
   document.getElementById('rsheet').classList.add('open')}
 function closeRSheet(){rEditId=null;document.getElementById('rsheet').classList.remove('open')}
@@ -632,12 +670,14 @@ async function saveReceipt(){
   if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)){alert('Check the time (24 h, hh:mm).');return}
   if(!place){alert('Add a place.');return}
   if(!isFinite(amt)||amt<=0){alert('Check the amount.');return}
+  const iane=rFor==='Split'?parseFloat(rv('r-iane').replace(',','.')):null;
+  if(rFor==='Split'&&(!isFinite(iane)||iane<=0||iane>=amt)){alert("Check Iane's share. It must be less than the total.");return}
   busy=true;
   try{const id=rEditId||crypto.randomUUID();let path=rEditPhoto;
     if(f){const ext=((f.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,''))||'jpg';const np=id+'-'+Date.now()+'.'+ext;
       const up=await sb.storage.from('receipts').upload(np,f,{contentType:f.type||'image/jpeg'});
       if(up.error){alert('Photo upload failed: '+up.error.message);return}path=np}
-    const row={receipt_date:d,receipt_time:t,place,meal:rMeal,for_who:rFor,amount:amt,note:note||null,photo_path:path||null};
+    const row={receipt_date:d,receipt_time:t,place,meal:mealStr(),for_who:rFor,amount:amt,iane_amount:iane,note:note||null,photo_path:path||null};
     const{error}=rEditId?await sb.from('receipts').update(row).eq('id',id):await sb.from('receipts').insert({id,...row});
     if(error){alert('Could not save: '+error.message);return}
     if(f&&rEditPhoto)sb.storage.from('receipts').remove([rEditPhoto]);
